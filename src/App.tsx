@@ -863,11 +863,7 @@ export default function App() {
     return list;
   }, [view, order, removed, placements, selectedDay, sectionOrders]);
 
-  const grouped = view === "all";
-  const routeGroup = visible.filter((b: Biz) => b.route);
-  const laterGroup = visible.filter((b: Biz) => !b.route);
-
-  const peers = (b: Biz): Biz[] => (grouped ? visible.filter((x: Biz) => x.route === b.route) : visible);
+  const peers = (_b: Biz): Biz[] => visible;
 
   const move = (b: Biz, delta: number): void => {
     const list = peers(b);
@@ -1292,16 +1288,7 @@ export default function App() {
         <Text>
           Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Afternoon starts sorted by earliest opening time for the selected day. Use Up and Down to set a manual order independently for Morning or Afternoon; those choices and saved-for-later placements persist in this browser.
         </Text>
-        {grouped ? (
-          <>
-            {routeGroup.length > 0 && (
-              <Section heading={`${DAY_NAMES[selectedDay]} route`}>{listBox(routeGroup)}</Section>
-            )}
-            {laterGroup.length > 0 && (
-              <Section heading="Another day">{listBox(laterGroup)}</Section>
-            )}
-          </>
-        ) : view === "saved" ? (
+        {view === "saved" ? (
           visible.length > 0 ? (
             <Section heading="Saved for later">{listBox(visible)}</Section>
           ) : (
