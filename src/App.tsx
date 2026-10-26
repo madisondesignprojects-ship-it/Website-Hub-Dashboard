@@ -541,7 +541,7 @@ const formatMinutes = (value: number): string => {
 };
 
 const parseTwelve = (value: string): number => {
-  const match = value.match(/^(\\d{1,2})(?::(\\d{2}))?\\s*(AM|PM)$/i);
+  const match = value.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
   if (!match) return 13 * 60;
   const hour = Number(match[1]) % 12 + (match[3].toUpperCase() === "PM" ? 12 : 0);
   return hour * 60 + Number(match[2] ?? 0);
