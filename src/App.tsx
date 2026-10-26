@@ -1033,7 +1033,7 @@ export default function App() {
           </label>
         </div>
         <Table
-          columns={["Stop", "Arrive", "Address", "Open Thu", "Best window", "Timing"]}
+          columns={["Stop", "Arrive", "Address", `Open ${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"}`, "Best window", "Timing"]}
           align={["start", "start", "start", "start", "start", "start"]}
           rows={[
             ...routeStops.map((b: Biz) => [
@@ -1078,7 +1078,7 @@ export default function App() {
         {grouped ? (
           <>
             {routeGroup.length > 0 && (
-              <Section heading="Thursday route">{listBox(routeGroup)}</Section>
+              <Section heading={`${DAY_NAMES[selectedDay]} route`}>{listBox(routeGroup)}</Section>
             )}
             {laterGroup.length > 0 && (
               <Section heading="Another day">{listBox(laterGroup)}</Section>
