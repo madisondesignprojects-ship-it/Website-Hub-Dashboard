@@ -32,6 +32,7 @@ interface Biz {
   repo: string;
   repoUrl?: string;
   route: boolean;
+  defaultView?: "morning" | "afternoon";
   walkOrder: number;
   slot: string;
   window: string;
@@ -423,6 +424,33 @@ const BIZ: Biz[] = [
     hoursVerified: false,
     hoursSource: "Conflicting public schedules: one directory lists Mon–Fri 7 AM–4 PM, another 24 hours daily. Verify directly.",
   },
+  {
+    id: "ohbrothers",
+    name: "OH! Brothers",
+    town: "Stoughton",
+    owner: "Owner/contact not confirmed",
+    oldUrl: "",
+    oldStatus: "None",
+    oldNote: "No official business website identified yet; verify current web and social presence before pitching.",
+    demoUrl: "https://oh-brothers.vercel.app",
+    updated: "2026-10-26",
+    updatedLabel: "Oct 26, 2026",
+    stage: "Demo built",
+    repo: "OH-Brothers",
+    route: false,
+    defaultView: "morning",
+    walkOrder: 12,
+    slot: "",
+    window: "Morning prospect · breakfast & lunch",
+    address: "121 E Main St",
+    hoursThu: "Hours not confirmed",
+    flag: "Morning prospect. Confirm opening hours and ask whether the decision-maker is available before visiting.",
+    flagTone: "warning",
+    notes: "Project README identifies OH! Brothers as a breakfast-and-lunch restaurant at 121 E Main St. Phone and operating hours are unconfirmed; confirm menu prices and any placeholders in the draft before using it as a public site.",
+    hours: every({ unknown: true }),
+    hoursVerified: false,
+    hoursSource: "Project notes confirm address and breakfast/lunch concept; opening hours and contact details need direct verification.",
+  },
 ];
 
 interface Site {
@@ -573,6 +601,7 @@ type SortableTab = "morning" | "afternoon";
 const inView = (b: Biz, v: View): boolean => {
   if (v === "all") return true;
   if (v === "saved") return false;
+  if (b.defaultView) return b.defaultView === v;
   if (b.plannedWalk) {
     const t = toMin(b.plannedWalk.time);
     if (v === "morning" && t >= 360 && t < 720) return true;
@@ -980,7 +1009,11 @@ export default function App() {
               color: t.text.primary,
             }}
           >
-            {b.route ? `${displayIndex ?? b.walkOrder}. ${b.name}` : b.name}
+            {(view === "morning" || view === "afternoon")
+              ? `${(displayIndex ?? 0) + 1}. ${b.name}`
+              : b.route
+                ? `${displayIndex ?? b.walkOrder}. ${b.name}`
+                : b.name}
           </div>
           <div style={{ ...small, marginTop: 4, color: t.text.primary }}>
             {b.route ? `${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"} ${formatMinutes(arrivalAt(b, startTime))} · ${b.address}, ${b.town}` : `${b.address}, ${b.town}`}
