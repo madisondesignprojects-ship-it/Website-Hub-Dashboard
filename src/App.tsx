@@ -575,7 +575,6 @@ const SITES: Site[] = [
     repo: "Jeffs_Guitar_Clinic",
     notes: "",
   },
-,
   {
     name: "Brick Works Masonry",
     town: "Not confirmed",
