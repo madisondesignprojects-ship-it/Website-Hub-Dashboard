@@ -1,18 +1,6 @@
-import {
-  Page,
-  Section,
-  Text,
-  Table,
-  Segmented,
-  Callout,
-  Button,
-  Status,
-  useState,
-  useMemo,
-  useEffect,
-  useGrokTheme,
-} from "grok/canvas";
-import type { CSSProperties } from "grok/canvas";
+import { useState, useMemo, useEffect } from "react";
+import type { CSSProperties } from "react";
+import { Page, Section, Text, Table, Segmented, Callout, Button, Status, useGrokTheme } from "./kit";
 
 type OldStatus = "Live" | "Down" | "None" | "Unknown";
 type FlagTone = "success" | "warning" | "danger";
@@ -608,13 +596,45 @@ const openState = (b: Biz, n: Now): OpenState => {
 
 const DEFAULT_ORDER: string[] = [...BIZ].sort((a: Biz, b: Biz) => a.walkOrder - b.walkOrder).map((b: Biz) => b.id);
 
+// Reorder and remove choices are saved in this browser (localStorage).
+const ORDER_KEY = "websiteHub.order.v1";
+const REMOVED_KEY = "websiteHub.removed.v1";
+
+const readIds = (key: string): string[] | null => {
+  try {
+    const v = JSON.parse(localStorage.getItem(key) ?? "null");
+    return Array.isArray(v) ? v.filter((x: unknown): x is string => typeof x === "string") : null;
+  } catch {
+    return null;
+  }
+};
+
+const loadOrder = (): string[] => {
+  const saved = readIds(ORDER_KEY);
+  if (!saved) return DEFAULT_ORDER;
+  const known = saved.filter((id: string) => DEFAULT_ORDER.includes(id));
+  // stops added to the dashboard later go at the end of the saved order
+  return [...known, ...DEFAULT_ORDER.filter((id: string) => !known.includes(id))];
+};
+
+const loadRemoved = (): string[] => (readIds(REMOVED_KEY) ?? []).filter((id: string) => DEFAULT_ORDER.includes(id));
+
 export default function App() {
   const t = useGrokTheme();
   const [view, setView] = useState<View>("all");
-  const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
-  const [removed, setRemoved] = useState<string[]>([]);
+  const [order, setOrder] = useState<string[]>(loadOrder);
+  const [removed, setRemoved] = useState<string[]>(loadRemoved);
   const [pending, setPending] = useState<string>("");
   const [now, setNow] = useState<Now>(nowCentral());
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+      localStorage.setItem(REMOVED_KEY, JSON.stringify(removed));
+    } catch {
+      // storage unavailable (private mode); choices just last for this visit
+    }
+  }, [order, removed]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(nowCentral()), 30000);
@@ -885,7 +905,7 @@ export default function App() {
           {reordered && <Button label="Reset order" onClick={() => setOrder(DEFAULT_ORDER)} />}
         </div>
         <Text>
-          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Right-now status uses Central time. Removing and reordering only change this view and reset when the Page reloads.
+          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Right-now status uses Central time. Removing and reordering are saved in this browser; use Restore removed or Reset order to undo.
         </Text>
         {grouped ? (
           <>

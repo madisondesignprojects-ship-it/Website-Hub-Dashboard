@@ -7,9 +7,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module">
-      import { mountCanvas } from "./canvas-runtime-grok.esm.js";
-      mountCanvas(new URL("./app.js", import.meta.url).href);
-    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
