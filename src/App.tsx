@@ -568,6 +568,7 @@ const spans = (d: DayHours | undefined): [number, number][] => {
 const overlaps = (a: number, b: number, c: number, d: number): boolean => Math.max(a, c) < Math.min(b, d);
 
 type View = "all" | "morning" | "afternoon" | "saved";
+type SortableTab = "morning" | "afternoon";
 
 const inView = (b: Biz, v: View): boolean => {
   if (v === "all") return true;
@@ -630,6 +631,7 @@ const DEFAULT_ORDER: string[] = [...BIZ].sort((a: Biz, b: Biz) => a.walkOrder - 
 const ORDER_KEY = "websiteHub.order.v1";
 const REMOVED_KEY = "websiteHub.removed.v1";
 const PLACEMENT_KEY = "websiteHub.placements.v1";
+const SECTION_ORDER_KEY = "websiteHub.sectionOrders.v1";
 
 const readIds = (key: string): string[] | null => {
   try {
@@ -667,6 +669,24 @@ const loadPlacements = (): Record<string, View> => {
   }
 };
 
+const loadSectionOrders = (): Partial<Record<SortableTab, string[]>> => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SECTION_ORDER_KEY) ?? "{}") as Record<string, unknown>;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    const result: Partial<Record<SortableTab, string[]>> = {};
+    (["morning", "afternoon"] as SortableTab[]).forEach((tab) => {
+      const saved = raw[tab];
+      if (Array.isArray(saved)) {
+        const known = saved.filter((id: unknown): id is string => typeof id === "string" && DEFAULT_ORDER.includes(id));
+        result[tab] = [...known, ...DEFAULT_ORDER.filter((id) => !known.includes(id))];
+      }
+    });
+    return result;
+  } catch {
+    return {};
+  }
+};
+
 export default function App() {
   const t = useGrokTheme();
   const [view, setView] = useState<View>("all");
@@ -675,6 +695,7 @@ export default function App() {
   const [order, setOrder] = useState<string[]>(loadOrder);
   const [removed, setRemoved] = useState<string[]>(loadRemoved);
   const [placements, setPlacements] = useState<Record<string, View>>(loadPlacements);
+  const [sectionOrders, setSectionOrders] = useState<Partial<Record<SortableTab, string[]>>>(loadSectionOrders);
   const [pending, setPending] = useState<string>("");
   const [now, setNow] = useState<Now>(nowCentral());
 
@@ -683,17 +704,18 @@ export default function App() {
       localStorage.setItem(ORDER_KEY, JSON.stringify(order));
       localStorage.setItem(REMOVED_KEY, JSON.stringify(removed));
       localStorage.setItem(PLACEMENT_KEY, JSON.stringify(placements));
+      localStorage.setItem(SECTION_ORDER_KEY, JSON.stringify(sectionOrders));
     } catch {
       // storage unavailable (private mode); choices just last for this visit
     }
-  }, [order, removed, placements]);
+  }, [order, removed, placements, sectionOrders]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(nowCentral()), 30000);
     return () => clearInterval(id);
   }, []);
 
-  const routeStops = BIZ.filter((b: Biz) => b.route).sort((a: Biz, b: Biz) => a.walkOrder - b.walkOrder);
+  const routeStops = BIZ.filter((b: Biz) => b.route).sort((a: Biz, b: Biz) => order.indexOf(a.id) - order.indexOf(b.id));
 
   const visible = useMemo<Biz[]>(() => {
     let list: Biz[];
@@ -710,7 +732,14 @@ export default function App() {
     }
 
     const savedOrder = (a: Biz, b: Biz) => order.indexOf(a.id) - order.indexOf(b.id);
-    if (view === "afternoon") {
+    if ((view === "morning" || view === "afternoon") && sectionOrders[view]) {
+      const tabOrder = sectionOrders[view]!;
+      const rank = (b: Biz) => {
+        const index = tabOrder.indexOf(b.id);
+        return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+      };
+      list.sort((a: Biz, b: Biz) => rank(a) - rank(b) || savedOrder(a, b));
+    } else if (view === "afternoon") {
       const openingMinute = (b: Biz): number => {
         const hours = b.hours[selectedDay];
         return !hours || hours.closed || hours.unknown || !hours.open
@@ -722,7 +751,7 @@ export default function App() {
       list.sort(savedOrder);
     }
     return list;
-  }, [view, order, removed, placements, selectedDay]);
+  }, [view, order, removed, placements, selectedDay, sectionOrders]);
 
   const grouped = view === "all";
   const routeGroup = visible.filter((b: Biz) => b.route);
@@ -735,6 +764,19 @@ export default function App() {
     const i = list.findIndex((x: Biz) => x.id === b.id);
     const j = i + delta;
     if (i < 0 || j < 0 || j >= list.length) return;
+
+    if (view === "morning" || view === "afternoon") {
+      const nextTabOrder = list.map((item: Biz) => item.id);
+      [nextTabOrder[i], nextTabOrder[j]] = [nextTabOrder[j], nextTabOrder[i]];
+      const completeTabOrder = [
+        ...nextTabOrder,
+        ...(sectionOrders[view] ?? []),
+        ...DEFAULT_ORDER,
+      ].filter((id, index, all) => DEFAULT_ORDER.includes(id) && all.indexOf(id) === index);
+      setSectionOrders({ ...sectionOrders, [view]: completeTabOrder });
+      return;
+    }
+
     const other = list[j].id;
     const next = order.slice();
     const pi = next.indexOf(b.id);
@@ -755,7 +797,15 @@ export default function App() {
     setView(target);
   };
 
-  const reordered = order.some((id: string, i: number) => id !== DEFAULT_ORDER[i]);
+  const reordered =
+    order.some((id: string, i: number) => id !== DEFAULT_ORDER[i]) ||
+    Boolean(sectionOrders.morning) ||
+    Boolean(sectionOrders.afternoon);
+
+  const resetOrder = (): void => {
+    setOrder(DEFAULT_ORDER);
+    setSectionOrders({});
+  };
 
   const countFor = (v: View): number => {
     if (v === "saved") return BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] === "saved").length;
@@ -884,7 +934,7 @@ export default function App() {
     }
     return (
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 }}>
-        {!isSaved && view !== "afternoon" && (
+        {!isSaved && view !== "saved" && (
           <>
             <Button label="↑ Up" disabled={i <= 0} onClick={() => move(b, -1)} />
             <Button label="↓ Down" disabled={i < 0 || i >= list.length - 1} onClick={() => move(b, 1)} />
@@ -930,7 +980,7 @@ export default function App() {
               color: t.text.primary,
             }}
           >
-            {view === "afternoon" ? `${(displayIndex ?? 0) + 1}. ${b.name}` : b.route ? `${b.walkOrder}. ${b.name}` : b.name}
+            {b.route ? `${displayIndex ?? b.walkOrder}. ${b.name}` : b.name}
           </div>
           <div style={{ ...small, marginTop: 4, color: t.text.primary }}>
             {b.route ? `${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"} ${formatMinutes(arrivalAt(b, startTime))} · ${b.address}, ${b.town}` : `${b.address}, ${b.town}`}
@@ -999,9 +1049,17 @@ export default function App() {
     </div>
   );
 
-  const listBox = (items: Biz[]) => (
-    <div style={{ marginTop: 16, borderTop: `1px solid ${t.border.default}` }}>{items.map((b: Biz, index: number) => card(b, index))}</div>
-  );
+  const listBox = (items: Biz[]) => {
+    let routeNumber = 0;
+    return (
+      <div style={{ marginTop: 16, borderTop: `1px solid ${t.border.default}` }}>
+        {items.map((b: Biz) => {
+          const number = b.route ? ++routeNumber : undefined;
+          return card(b, number);
+        })}
+      </div>
+    );
+  };
 
   return (
     <Page
@@ -1036,8 +1094,8 @@ export default function App() {
           columns={["Stop", "Arrive", "Address", `Open ${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"}`, "Best window", "Timing"]}
           align={["start", "start", "start", "start", "start", "start"]}
           rows={[
-            ...routeStops.map((b: Biz) => [
-              `${b.walkOrder}. ${b.name}`,
+            ...routeStops.map((b: Biz, index: number) => [
+              `${index + 1}. ${b.name}`,
               formatMinutes(arrivalAt(b, startTime)),
               b.address,
               dayText(b.hours[selectedDay]),
@@ -1070,10 +1128,10 @@ export default function App() {
             ]}
           />
           {removed.length > 0 && <Button label={`Restore removed (${removed.length})`} onClick={() => setRemoved([])} />}
-          {reordered && <Button label="Reset order" onClick={() => setOrder(DEFAULT_ORDER)} />}
+          {reordered && <Button label="Reset order" onClick={resetOrder} />}
         </div>
         <Text>
-          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Afternoon stops are automatically ordered by their earliest opening time on the selected walk day. Your moves and saved-for-later choices persist in this browser.
+          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Afternoon starts sorted by earliest opening time for the selected day. Use Up and Down to set a manual order independently for Morning or Afternoon; those choices and saved-for-later placements persist in this browser.
         </Text>
         {grouped ? (
           <>
