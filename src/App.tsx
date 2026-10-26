@@ -56,6 +56,18 @@ const DAYS: [DayKey, string][] = [
   ["sun", "Sun"],
 ];
 
+const DAY_NAMES: Record<DayKey, string> = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};
+
+const START_TIMES = Array.from({ length: 17 }, (_, i) => 8 * 60 + i * 30);
+
 const every = (h: DayHours): Week => ({ mon: h, tue: h, wed: h, thu: h, fri: h, sat: h, sun: h });
 
 const BIZ: Biz[] = [
@@ -521,6 +533,23 @@ const twelve = (s: string): string => {
   return `${hh}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
 };
 
+const formatMinutes = (value: number): string => {
+  const mins = ((value % 1440) + 1440) % 1440;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h % 12 || 12}${m ? ":" + String(m).padStart(2, "0") : ""} ${h < 12 ? "AM" : "PM"}`;
+};
+
+const parseTwelve = (value: string): number => {
+  const match = value.match(/^(\\d{1,2})(?::(\\d{2}))?\\s*(AM|PM)$/i);
+  if (!match) return 13 * 60;
+  const hour = Number(match[1]) % 12 + (match[3].toUpperCase() === "PM" ? 12 : 0);
+  return hour * 60 + Number(match[2] ?? 0);
+};
+
+const arrivalAt = (b: Biz, startTime: number): number =>
+  startTime + parseTwelve(b.slot) - 13 * 60;
+
 const dayText = (d: DayHours | undefined): string => {
   if (!d) return "Not confirmed";
   if (d.closed) return "Closed";
@@ -538,10 +567,11 @@ const spans = (d: DayHours | undefined): [number, number][] => {
 
 const overlaps = (a: number, b: number, c: number, d: number): boolean => Math.max(a, c) < Math.min(b, d);
 
-type View = "all" | "morning" | "afternoon";
+type View = "all" | "morning" | "afternoon" | "saved";
 
 const inView = (b: Biz, v: View): boolean => {
   if (v === "all") return true;
+  if (v === "saved") return false;
   if (b.plannedWalk) {
     const t = toMin(b.plannedWalk.time);
     if (v === "morning" && t >= 360 && t < 720) return true;
@@ -599,6 +629,7 @@ const DEFAULT_ORDER: string[] = [...BIZ].sort((a: Biz, b: Biz) => a.walkOrder - 
 // Reorder and remove choices are saved in this browser (localStorage).
 const ORDER_KEY = "websiteHub.order.v1";
 const REMOVED_KEY = "websiteHub.removed.v1";
+const PLACEMENT_KEY = "websiteHub.placements.v1";
 
 const readIds = (key: string): string[] | null => {
   try {
@@ -619,11 +650,31 @@ const loadOrder = (): string[] => {
 
 const loadRemoved = (): string[] => (readIds(REMOVED_KEY) ?? []).filter((id: string) => DEFAULT_ORDER.includes(id));
 
+const loadPlacements = (): Record<string, View> => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PLACEMENT_KEY) ?? "{}") as Record<string, unknown>;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    const valid: Record<string, View> = {};
+    Object.entries(raw).forEach(([id, value]) => {
+      if (
+        DEFAULT_ORDER.includes(id) &&
+        (value === "all" || value === "morning" || value === "afternoon" || value === "saved")
+      ) valid[id] = value;
+    });
+    return valid;
+  } catch {
+    return {};
+  }
+};
+
 export default function App() {
   const t = useGrokTheme();
   const [view, setView] = useState<View>("all");
+  const [selectedDay, setSelectedDay] = useState<DayKey>("thu");
+  const [startTime, setStartTime] = useState<number>(13 * 60);
   const [order, setOrder] = useState<string[]>(loadOrder);
   const [removed, setRemoved] = useState<string[]>(loadRemoved);
+  const [placements, setPlacements] = useState<Record<string, View>>(loadPlacements);
   const [pending, setPending] = useState<string>("");
   const [now, setNow] = useState<Now>(nowCentral());
 
@@ -631,10 +682,11 @@ export default function App() {
     try {
       localStorage.setItem(ORDER_KEY, JSON.stringify(order));
       localStorage.setItem(REMOVED_KEY, JSON.stringify(removed));
+      localStorage.setItem(PLACEMENT_KEY, JSON.stringify(placements));
     } catch {
       // storage unavailable (private mode); choices just last for this visit
     }
-  }, [order, removed]);
+  }, [order, removed, placements]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(nowCentral()), 30000);
@@ -644,10 +696,33 @@ export default function App() {
   const routeStops = BIZ.filter((b: Biz) => b.route).sort((a: Biz, b: Biz) => a.walkOrder - b.walkOrder);
 
   const visible = useMemo<Biz[]>(() => {
-    const list = BIZ.filter((b: Biz) => !removed.includes(b.id) && inView(b, view));
-    list.sort((a: Biz, b: Biz) => order.indexOf(a.id) - order.indexOf(b.id));
+    let list: Biz[];
+    if (view === "saved") {
+      list = BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] === "saved");
+    } else if (view === "all") {
+      list = BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] !== "saved");
+    } else {
+      list = BIZ.filter((b: Biz) =>
+        !removed.includes(b.id) &&
+        placements[b.id] !== "saved" &&
+        (placements[b.id] ? placements[b.id] === view : inView(b, view)),
+      );
+    }
+
+    const savedOrder = (a: Biz, b: Biz) => order.indexOf(a.id) - order.indexOf(b.id);
+    if (view === "afternoon") {
+      const openingMinute = (b: Biz): number => {
+        const hours = b.hours[selectedDay];
+        return !hours || hours.closed || hours.unknown || !hours.open
+          ? Number.MAX_SAFE_INTEGER
+          : toMin(hours.open);
+      };
+      list.sort((a: Biz, b: Biz) => openingMinute(a) - openingMinute(b) || savedOrder(a, b));
+    } else {
+      list.sort(savedOrder);
+    }
     return list;
-  }, [view, order, removed]);
+  }, [view, order, removed, placements, selectedDay]);
 
   const grouped = view === "all";
   const routeGroup = visible.filter((b: Biz) => b.route);
@@ -674,14 +749,53 @@ export default function App() {
     setPending("");
   };
 
+  const moveTo = (id: string, target: View): void => {
+    setPlacements({ ...placements, [id]: target });
+    setPending("");
+    setView(target);
+  };
+
   const reordered = order.some((id: string, i: number) => id !== DEFAULT_ORDER[i]);
 
-  const countFor = (v: View): number => BIZ.filter((b: Biz) => !removed.includes(b.id) && inView(b, v)).length;
+  const countFor = (v: View): number => {
+    if (v === "saved") return BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] === "saved").length;
+    if (v === "all") return BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] !== "saved").length;
+    return BIZ.filter((b: Biz) =>
+      !removed.includes(b.id) &&
+      placements[b.id] !== "saved" &&
+      (placements[b.id] ? placements[b.id] === v : inView(b, v)),
+    ).length;
+  };
 
   const statusColor = (s: OldStatus): string =>
     s === "Live" ? t.text.success : s === "Down" ? t.text.danger : t.text.tertiary;
   const flagColor = (f: FlagTone): string =>
     f === "success" ? t.text.success : f === "warning" ? t.text.warning : t.text.danger;
+
+  const arrivalStatus = (b: Biz, arrival: number): OpenState => {
+    const d = b.hours[selectedDay];
+    if (!d || d.unknown || !d.open || !d.close) return "unknown";
+    if (d.closed) return "closed";
+    const open = toMin(d.open);
+    const close = toMin(d.close);
+    if (open === close) return "closed";
+    return (open < close ? arrival >= open && arrival < close : arrival >= open || arrival < close)
+      ? "open"
+      : "closed";
+  };
+
+  const routeMessage = (b: Biz): string => {
+    const status = arrivalStatus(b, arrivalAt(b, startTime));
+    if (status === "open") {
+      return selectedDay === "thu" && startTime === 13 * 60 ? b.flag : "Open at planned arrival";
+    }
+    return status === "closed" ? "Closed at planned arrival" : "Hours for this day are not confirmed";
+  };
+
+  const routeMessageTone = (b: Biz): FlagTone => {
+    const status = arrivalStatus(b, arrivalAt(b, startTime));
+    return status === "open" ? "success" : status === "closed" ? "danger" : "warning";
+  };
 
   const linkBtn = (primary: boolean): CSSProperties => ({
     display: "inline-flex",
@@ -757,6 +871,7 @@ export default function App() {
   const tools = (b: Biz) => {
     const list = peers(b);
     const i = list.findIndex((x: Biz) => x.id === b.id);
+    const isSaved = placements[b.id] === "saved";
     if (pending === b.id) {
       return (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 }}>
@@ -767,15 +882,42 @@ export default function App() {
       );
     }
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
-        <Button label="↑ Up" disabled={i <= 0} onClick={() => move(b, -1)} />
-        <Button label="↓ Down" disabled={i < 0 || i >= list.length - 1} onClick={() => move(b, 1)} />
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 12 }}>
+        {!isSaved && view !== "afternoon" && (
+          <>
+            <Button label="↑ Up" disabled={i <= 0} onClick={() => move(b, -1)} />
+            <Button label="↓ Down" disabled={i < 0 || i >= list.length - 1} onClick={() => move(b, 1)} />
+          </>
+        )}
+        <select
+          aria-label={`Move ${b.name}`}
+          value=""
+          onChange={(event) => {
+            if (event.target.value) moveTo(b.id, event.target.value as View);
+          }}
+          style={{
+            ...small,
+            maxWidth: "100%",
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: `1px solid ${t.border.default}`,
+            color: t.text.primary,
+            background: t.paper,
+            cursor: "pointer",
+          }}
+        >
+          <option value="" disabled>Move to…</option>
+          {(isSaved
+            ? [{ value: "all", label: "All" }, { value: "morning", label: "Morning" }, { value: "afternoon", label: "Afternoon" }]
+            : [{ value: "saved", label: "Saved for later" }, { value: "all", label: "All" }, { value: "morning", label: "Morning" }, { value: "afternoon", label: "Afternoon" }]
+          ).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
         <Button label="Remove" onClick={() => setPending(b.id)} />
       </div>
     );
   };
 
-  const card = (b: Biz) => (
+  const card = (b: Biz, displayIndex?: number) => (
     <div key={b.id} style={{ padding: "18px 0", borderBottom: `1px solid ${t.border.subtle}` }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
         <div style={{ flex: "1 1 260px", minWidth: 0 }}>
@@ -787,18 +929,20 @@ export default function App() {
               color: t.text.primary,
             }}
           >
-            {b.route ? `${b.walkOrder}. ${b.name}` : b.name}
+            {view === "afternoon" ? `${(displayIndex ?? 0) + 1}. ${b.name}` : b.route ? `${b.walkOrder}. ${b.name}` : b.name}
           </div>
           <div style={{ ...small, marginTop: 4, color: t.text.primary }}>
-            {b.route ? `Thu ${b.slot} · ${b.address}, ${b.town}` : `${b.address}, ${b.town}`}
+            {b.route ? `${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"} ${formatMinutes(arrivalAt(b, startTime))} · ${b.address}, ${b.town}` : `${b.address}, ${b.town}`}
           </div>
           <div style={{ ...small, marginTop: 4 }}>
             {b.owner ? `Owner: ${b.owner}` : ""}
           </div>
           <div style={{ ...small, marginTop: 4 }}>
-            Open Thu {b.hoursThu} · Best window {b.window}
+            Open {DAY_NAMES[selectedDay]} {dayText(b.hours[selectedDay])} · Best window {b.window}
           </div>
-          <div style={{ ...small, marginTop: 4, color: flagColor(b.flagTone), fontWeight: t.weight.medium }}>{b.flag}</div>
+          <div style={{ ...small, marginTop: 4, color: flagColor(b.route ? routeMessageTone(b) : b.flagTone), fontWeight: t.weight.medium }}>
+            {b.route ? routeMessage(b) : b.flag}
+          </div>
           {todayLine(b)}
           {weekGrid(b)}
           {b.notes && <div style={{ ...small, marginTop: 8, color: t.text.tertiary }}>{b.notes}</div>}
@@ -855,33 +999,55 @@ export default function App() {
   );
 
   const listBox = (items: Biz[]) => (
-    <div style={{ marginTop: 16, borderTop: `1px solid ${t.border.default}` }}>{items.map((b: Biz) => card(b))}</div>
+    <div style={{ marginTop: 16, borderTop: `1px solid ${t.border.default}` }}>{items.map((b: Biz, index: number) => card(b, index))}</div>
   );
 
   return (
     <Page
-      title="Thursday walk route: 1:00-2:45 PM"
-      summary="Seven stops from The Pub at 1:00 PM to Mershon's Cider at 2:30 PM, leaving by 2:45 PM, each open when you arrive. Four more are held for another day, and eight other finished sites are listed at the end. Times are Central; route hours checked Oct 22, 2026."
+      title={`${DAY_NAMES[selectedDay]} walk route: ${formatMinutes(startTime)}–${formatMinutes(startTime + 105)}`}
+      summary="Choose a walk day and start time below. Route arrival times shift with your selections; the dashboard checks each stop against that day's listed opening hours."
       width="wide"
     >
       <Section heading="Route and timing">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "end" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5, ...small }}>
+            <span style={{ color: t.text.tertiary, fontSize: t.font.label.fontSize }}>Walk day</span>
+            <select
+              value={selectedDay}
+              onChange={(event) => setSelectedDay(event.target.value as DayKey)}
+              style={{ ...small, minWidth: 150, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border.default}`, color: t.text.primary, background: t.paper }}
+            >
+              {DAYS.map(([key]) => <option key={key} value={key}>{DAY_NAMES[key]}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 5, ...small }}>
+            <span style={{ color: t.text.tertiary, fontSize: t.font.label.fontSize }}>Start time</span>
+            <select
+              value={startTime}
+              onChange={(event) => setStartTime(Number(event.target.value))}
+              style={{ ...small, minWidth: 130, padding: "8px 10px", borderRadius: 8, border: `1px solid ${t.border.default}`, color: t.text.primary, background: t.paper }}
+            >
+              {START_TIMES.map((mins) => <option key={mins} value={mins}>{formatMinutes(mins)}</option>)}
+            </select>
+          </label>
+        </div>
         <Table
           columns={["Stop", "Arrive", "Address", "Open Thu", "Best window", "Timing"]}
           align={["start", "start", "start", "start", "start", "start"]}
           rows={[
             ...routeStops.map((b: Biz) => [
               `${b.walkOrder}. ${b.name}`,
-              b.slot,
+              formatMinutes(arrivalAt(b, startTime)),
               b.address,
-              b.hoursThu,
+              dayText(b.hours[selectedDay]),
               b.window,
-              { text: b.flag, tone: b.flagTone },
+              { text: routeMessage(b), tone: routeMessageTone(b) },
             ]),
-            ["Done, leave", "2:45 PM", "", "", "", ""],
+            ["Done, leave", formatMinutes(startTime + 105), "", "", "", ""],
           ]}
         />
-        <Callout tone="info" lead="All seven are open on arrival.">
-          Three are outside their best windows: The Pub (best 1:30–4:00), Olson (best 8:00–10:30 AM or 3–5 PM) and Roxy's (best 3–5 PM).
+        <Callout tone="info" lead={`${routeStops.filter((b: Biz) => arrivalStatus(b, arrivalAt(b, startTime)) === "open").length} of ${routeStops.length} route stops are open at their planned arrival times.`}>
+          Opening checks use the listed hours for {DAY_NAMES[selectedDay]}. Verify any unconfirmed hours before starting the walk.
         </Callout>
         <Text>The Pub is a drive, 10–12 minutes back to downtown. After that, about 12 minutes per stop on foot; stops 2 to 7 are all within about two blocks of Main and Water St.</Text>
       </Section>
@@ -896,16 +1062,17 @@ export default function App() {
               setPending("");
             }}
             options={[
-              { value: "all", label: "All stops", count: countFor("all") },
+              { value: "all", label: "All", count: countFor("all") },
               { value: "morning", label: "Morning", count: countFor("morning") },
               { value: "afternoon", label: "Afternoon", count: countFor("afternoon") },
+              { value: "saved", label: "Saved for later", count: countFor("saved") },
             ]}
           />
           {removed.length > 0 && <Button label={`Restore removed (${removed.length})`} onClick={() => setRemoved([])} />}
           {reordered && <Button label="Reset order" onClick={() => setOrder(DEFAULT_ORDER)} />}
         </div>
         <Text>
-          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Right-now status uses Central time. Removing and reordering are saved in this browser; use Restore removed or Reset order to undo.
+          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Afternoon stops are automatically ordered by their earliest opening time on the selected walk day. Your moves and saved-for-later choices persist in this browser.
         </Text>
         {grouped ? (
           <>
@@ -916,6 +1083,14 @@ export default function App() {
               <Section heading="Another day">{listBox(laterGroup)}</Section>
             )}
           </>
+        ) : view === "saved" ? (
+          visible.length > 0 ? (
+            <Section heading="Saved for later">{listBox(visible)}</Section>
+          ) : (
+            <Callout tone="info" lead="Nothing saved for later yet.">
+              Use the “Move to…” menu on any business card to keep it here for another day.
+            </Callout>
+          )
         ) : (
           visible.length > 0 && listBox(visible)
         )}
