@@ -68,6 +68,28 @@ const DAY_NAMES: Record<DayKey, string> = {
 };
 
 const START_TIMES = Array.from({ length: 17 }, (_, i) => 8 * 60 + i * 30);
+const ROUTE_PREFS_KEY = "websiteHub.routePreferences.v1";
+const MEETING_DURATION_MINUTES = 10;
+// Last downtown stop arrives 90 minutes after the selected start; allow 10 minutes for that meeting.
+const ROUTE_DURATION_MINUTES = 100;
+const DEFAULT_ROUTE_DAY: DayKey = "thu";
+const DEFAULT_ROUTE_START_TIME = 13 * 60;
+
+const loadRoutePreferences = (): { selectedDay: DayKey; startTime: number } => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ROUTE_PREFS_KEY) ?? "null") as Record<string, unknown> | null;
+    const savedDay = raw?.selectedDay;
+    const savedTime = Number(raw?.startTime);
+    return {
+      selectedDay: typeof savedDay === "string" && DAYS.some(([key]) => key === savedDay)
+        ? savedDay as DayKey
+        : DEFAULT_ROUTE_DAY,
+      startTime: START_TIMES.includes(savedTime) ? savedTime : DEFAULT_ROUTE_START_TIME,
+    };
+  } catch {
+    return { selectedDay: DEFAULT_ROUTE_DAY, startTime: DEFAULT_ROUTE_START_TIME };
+  }
+};
 
 const every = (h: DayHours): Week => ({ mon: h, tue: h, wed: h, thu: h, fri: h, sat: h, sun: h });
 
@@ -719,8 +741,8 @@ const loadSectionOrders = (): Partial<Record<SortableTab, string[]>> => {
 export default function App() {
   const t = useGrokTheme();
   const [view, setView] = useState<View>("all");
-  const [selectedDay, setSelectedDay] = useState<DayKey>("thu");
-  const [startTime, setStartTime] = useState<number>(13 * 60);
+  const [selectedDay, setSelectedDay] = useState<DayKey>(() => loadRoutePreferences().selectedDay);
+  const [startTime, setStartTime] = useState<number>(() => loadRoutePreferences().startTime);
   const [order, setOrder] = useState<string[]>(loadOrder);
   const [removed, setRemoved] = useState<string[]>(loadRemoved);
   const [placements, setPlacements] = useState<Record<string, View>>(loadPlacements);
@@ -738,6 +760,14 @@ export default function App() {
       // storage unavailable (private mode); choices just last for this visit
     }
   }, [order, removed, placements, sectionOrders]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ROUTE_PREFS_KEY, JSON.stringify({ selectedDay, startTime }));
+    } catch {
+      // Storage may be unavailable in private browsing; selections last for this visit.
+    }
+  }, [selectedDay, startTime]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(nowCentral()), 30000);
@@ -1096,8 +1126,8 @@ export default function App() {
 
   return (
     <Page
-      title={`${DAY_NAMES[selectedDay]} walk route: ${formatMinutes(startTime)}–${formatMinutes(startTime + 105)}`}
-      summary="Choose a walk day and start time below. Route arrival times shift with your selections; the dashboard checks each stop against that day's listed opening hours."
+      title={`${DAY_NAMES[selectedDay]} walk route: ${formatMinutes(startTime)}–${formatMinutes(startTime + ROUTE_DURATION_MINUTES)}`}
+      summary="Choose a walk day and start time below. Your selected day and time are remembered in this browser. Each visit is planned as a 10-minute meeting, with opening-hour checks for the selected day."
       width="wide"
     >
       <Section heading="Route and timing">
@@ -1124,24 +1154,25 @@ export default function App() {
           </label>
         </div>
         <Table
-          columns={["Stop", "Arrive", "Address", `Open ${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"}`, "Best window", "Timing"]}
-          align={["start", "start", "start", "start", "start", "start"]}
+          columns={["Stop", "Arrive", "Meeting", "Address", `Open ${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"}`, "Best window", "Timing"]}
+          align={["start", "start", "start", "start", "start", "start", "start"]}
           rows={[
             ...routeStops.map((b: Biz, index: number) => [
               `${index + 1}. ${b.name}`,
               formatMinutes(arrivalAt(b, startTime)),
+              `${MEETING_DURATION_MINUTES} min`,
               b.address,
               dayText(b.hours[selectedDay]),
               b.window,
               { text: routeMessage(b), tone: routeMessageTone(b) },
             ]),
-            ["Done, leave", formatMinutes(startTime + 105), "", "", "", ""],
+            ["Done, leave", formatMinutes(startTime + ROUTE_DURATION_MINUTES), "", "", "", "", ""],
           ]}
         />
         <Callout tone="info" lead={`${routeStops.filter((b: Biz) => arrivalStatus(b, arrivalAt(b, startTime)) === "open").length} of ${routeStops.length} route stops are open at their planned arrival times.`}>
           Opening checks use the listed hours for {DAY_NAMES[selectedDay]}. Verify any unconfirmed hours before starting the walk.
         </Callout>
-        <Text>The Pub is a drive, 10–12 minutes back to downtown. After that, about 12 minutes per stop on foot; stops 2 to 7 are all within about two blocks of Main and Water St.</Text>
+        <Text>Plan 10 minutes per meeting. The downtown arrival slots are 12 minutes apart, leaving about 2 minutes to walk between nearby stops. The Pub has a 30-minute gap before the downtown route to allow for the 10–12 minute drive back and a little buffer. Start times are estimates, so wrap up on time if the next owner is waiting.</Text>
       </Section>
 
       <Section heading="Stops">
