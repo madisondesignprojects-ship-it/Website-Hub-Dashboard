@@ -671,6 +671,25 @@ const overlaps = (a: number, b: number, c: number, d: number): boolean => Math.m
 type View = "all" | "morning" | "afternoon" | "saved";
 type SortableTab = "morning" | "afternoon";
 
+const appointmentPeriod = (b: Biz): "morning" | "afternoon" => {
+  if (b.defaultView) return b.defaultView;
+  if (b.plannedWalk) {
+    const mins = toMin(b.plannedWalk.time);
+    return mins >= 720 || mins < 360 ? "afternoon" : "morning";
+  }
+  if (b.slot) {
+    const mins = toMin(b.slot);
+    return mins >= 720 || mins < 360 ? "afternoon" : "morning";
+  }
+  const firstTime = b.window.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
+  if (firstTime) {
+    let hour = Number(firstTime[1]) % 12;
+    if (firstTime[3].toUpperCase() === "PM") hour += 12;
+    return hour >= 12 || hour < 6 ? "afternoon" : "morning";
+  }
+  return inView(b, "afternoon") ? "afternoon" : "morning";
+};
+
 const inView = (b: Biz, v: View): boolean => {
   if (v === "all") return true;
   if (v === "saved") return false;
@@ -1104,19 +1123,29 @@ export default function App() {
     >
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
         <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: t.font.heading3.fontSize,
-              lineHeight: t.font.heading3.lineHeight,
-              fontWeight: t.weight.semibold,
-              color: t.text.primary,
-            }}
-          >
-            {(view === "morning" || view === "afternoon")
-              ? `${(displayIndex ?? 0) + 1}. ${b.name}`
-              : b.route
-                ? `${displayIndex ?? b.walkOrder}. ${b.name}`
-                : b.name}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div
+              style={{
+                fontSize: t.font.heading3.fontSize,
+                lineHeight: t.font.heading3.lineHeight,
+                fontWeight: t.weight.semibold,
+                color: t.text.primary,
+                minWidth: 0,
+              }}
+            >
+              {(view === "morning" || view === "afternoon")
+                ? `${(displayIndex ?? 0) + 1}. ${b.name}`
+                : b.route
+                  ? `${displayIndex ?? b.walkOrder}. ${b.name}`
+                  : b.name}
+            </div>
+            <span
+              title={appointmentPeriod(b) === "afternoon" ? "Afternoon appointment" : "Morning/day appointment"}
+              aria-label={appointmentPeriod(b) === "afternoon" ? "Afternoon appointment" : "Morning/day appointment"}
+              style={{ fontSize: 26, lineHeight: 1, flexShrink: 0, padding: "2px 3px" }}
+            >
+              {appointmentPeriod(b) === "afternoon" ? "🌙" : "☀️"}
+            </span>
           </div>
           <div style={{ ...small, marginTop: 4, color: t.text.primary }}>
             {b.route ? `${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"} ${formatMinutes(arrivalAt(b, startTime))} · ${b.address}, ${b.town}` : `${b.address}, ${b.town}`}
