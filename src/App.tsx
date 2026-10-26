@@ -825,7 +825,7 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  const routeStops = BIZ.filter((b: Biz) => b.route).sort((a: Biz, b: Biz) => order.indexOf(a.id) - order.indexOf(b.id));
+  const routeStops = BIZ.filter((b: Biz) => b.route && !removed.includes(b.id) && placements[b.id] !== "saved").sort((a: Biz, b: Biz) => order.indexOf(a.id) - order.indexOf(b.id));
 
   const visible = useMemo<Biz[]>(() => {
     let list: Biz[];
