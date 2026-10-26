@@ -946,15 +946,30 @@ export default function App() {
       <div style={label}>
         Weekly hours · {b.hoursVerified ? "source checked" : b.hoursSource.toLowerCase().includes("conflict") ? "conflicting listings" : "not publicly posted"}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", marginTop: 4 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
         {DAYS.map(([k, name]: [DayKey, string]) => {
           const d = b.hours[k];
           const isToday = k === now.day;
           const muted = !d || d.closed || d.unknown || !d.open;
           return (
-            <div key={k} style={{ ...small, display: "flex", gap: 6, color: isToday ? t.text.primary : muted ? t.text.tertiary : t.text.secondary, fontWeight: isToday ? t.weight.semibold : t.weight.regular }}>
-              <span style={{ color: t.text.tertiary, fontWeight: t.weight.medium }}>{name}</span>
-              <span>{dayText(d)}</span>
+            <div
+              key={k}
+              style={{
+                ...small,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                minWidth: 88,
+                boxSizing: "border-box",
+                padding: "6px 8px",
+                borderRadius: 8,
+                border: `1px solid ${isToday ? t.text.accent : t.border.default}`,
+                background: isToday ? t.fill.accentSubtle : t.fill.secondary,
+                color: muted ? t.text.tertiary : t.text.secondary,
+              }}
+            >
+              <span style={{ color: isToday ? t.text.accent : t.text.tertiary, fontWeight: t.weight.semibold }}>{name}{isToday ? " · Today" : ""}</span>
+              <span style={{ color: isToday ? t.text.primary : muted ? t.text.tertiary : t.text.secondary, fontWeight: isToday ? t.weight.medium : t.weight.regular }}>{dayText(d)}</span>
             </div>
           );
         })}
@@ -1028,7 +1043,18 @@ export default function App() {
   };
 
   const card = (b: Biz, displayIndex?: number) => (
-    <div key={b.id} style={{ padding: "18px 0", borderBottom: `1px solid ${t.border.subtle}` }}>
+    <div
+      key={b.id}
+      style={{
+        padding: "16px",
+        marginBottom: 12,
+        border: `1px solid ${t.border.default}`,
+        borderLeft: `4px solid ${t.text.accent}`,
+        borderRadius: 12,
+        background: t.paper,
+        boxShadow: `0 1px 2px ${t.text.primary}0d`,
+      }}
+    >
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
         <div style={{ flex: "1 1 260px", minWidth: 0 }}>
           <div
