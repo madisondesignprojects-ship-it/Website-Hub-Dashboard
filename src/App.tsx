@@ -575,6 +575,17 @@ const SITES: Site[] = [
     repo: "Jeffs_Guitar_Clinic",
     notes: "",
   },
+,
+  {
+    name: "Brick Works Masonry",
+    town: "Not confirmed",
+    demoUrl: "https://brick-works-masonry.vercel.app",
+    oldUrl: "",
+    oldStatus: "Unknown",
+    deployed: "Oct 26, 2026",
+    repo: "Brick-Works-Masonry",
+    notes: "Demo site built; current website and business location not yet confirmed.",
+  },
 ];
 
 const host = (u: string): string => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
