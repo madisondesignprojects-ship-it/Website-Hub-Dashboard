@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Hub: Current Sites vs. Demos</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { mountCanvas } from "./canvas-runtime-grok.esm.js";
+      mountCanvas(new URL("./app.js", import.meta.url).href);
+    </script>
+  </body>
+</html>
