@@ -410,13 +410,21 @@ const BIZ: Biz[] = [
     slot: "",
     window: "Planned walk Mon Oct 26, 2:00 PM (not a published opening hour)",
     address: "401 W Main St",
-    hoursThu: "Office hours not posted",
+    hoursThu: "3–8:30 PM",
     flag: "Planned sales-walk Mon Oct 26 at 2:00 PM; not a confirmed appointment.",
     flagTone: "warning",
     notes: "Phone (608) 877-0303. Call ahead to confirm Pastor Jason or another decision-maker is available. Show the church redesign and discuss clearer visitor info, ministries, sermons, calendar and contact access.",
-    hours: every({ unknown: true }),
+    hours: {
+      mon: { open: "15:00", close: "20:30" },
+      tue: { open: "08:00", close: "10:30" },
+      wed: { open: "15:00", close: "20:30" },
+      thu: { open: "15:00", close: "20:30" },
+      fri: { open: "08:00", close: "10:30" },
+      sat: { closed: true },
+      sun: { open: "10:00", close: "12:00" },
+    },
     hoursVerified: false,
-    hoursSource: "Public office hours are not posted; call ahead before visiting",
+    hoursSource: "Hours supplied by user; not independently verified.",
     plannedWalk: { day: "mon", time: "14:00" },
   },
   {
@@ -944,7 +952,7 @@ export default function App() {
   const weekGrid = (b: Biz) => (
     <div style={{ marginTop: 10 }}>
       <div style={label}>
-        Weekly hours · {b.hoursVerified ? "source checked" : b.hoursSource.toLowerCase().includes("conflict") ? "conflicting listings" : "not publicly posted"}
+        Weekly hours · {b.hoursVerified ? "source checked" : b.hoursSource.toLowerCase().includes("conflict") ? "conflicting listings" : b.hoursSource.toLowerCase().includes("user") ? "user-provided hours" : "not publicly posted"}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
         {DAYS.map(([k, name]: [DayKey, string]) => {
