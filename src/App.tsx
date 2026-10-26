@@ -774,8 +774,9 @@ export default function App() {
 
   const arrivalStatus = (b: Biz, arrival: number): OpenState => {
     const d = b.hours[selectedDay];
-    if (!d || d.unknown || !d.open || !d.close) return "unknown";
+    if (!d || d.unknown) return "unknown";
     if (d.closed) return "closed";
+    if (!d.open || !d.close) return "unknown";
     const open = toMin(d.open);
     const close = toMin(d.close);
     if (open === close) return "closed";
