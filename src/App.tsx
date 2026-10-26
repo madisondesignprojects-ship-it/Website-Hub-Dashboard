@@ -1075,7 +1075,25 @@ export default function App() {
             {b.route ? `${DAYS.find(([k]) => k === selectedDay)?.[1] ?? "Thu"} ${formatMinutes(arrivalAt(b, startTime))} · ${b.address}, ${b.town}` : `${b.address}, ${b.town}`}
           </div>
           <div style={{ ...small, marginTop: 4 }}>
-            {b.owner ? `Owner: ${b.owner}` : ""}
+            {b.owner ? (
+              <>
+                <span style={{ color: t.text.tertiary, fontWeight: t.weight.medium }}>Owner: </span>
+                {/unknown|not confirmed/i.test(b.owner) ? (
+                  <span>{b.owner}</span>
+                ) : (
+                  <>
+                    <span style={{ color: t.text.warning, fontWeight: t.weight.semibold }}>
+                      {b.owner.split(" (")[0]}
+                    </span>
+                    {b.owner.includes(" (") && (
+                      <span style={{ color: t.text.secondary }}>
+                        {" (" + b.owner.split(" (").slice(1).join(" (")}
+                      </span>
+                    )}
+                  </>
+                )}
+              </>
+            ) : ""}
           </div>
           <div style={{ ...small, marginTop: 4 }}>
             Open {DAY_NAMES[selectedDay]} {dayText(b.hours[selectedDay])} · Best window {b.window}
