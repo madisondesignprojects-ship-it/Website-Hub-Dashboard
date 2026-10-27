@@ -1,6 +1,6 @@
 // Plain-React stand-ins for the components the dashboard was first built with.
-// Same names and props, so App.tsx reads the same; styling follows the system light/dark setting.
-import { useEffect, useState, isValidElement } from "react";
+// Same names and props, so App.tsx reads the same; always rendered in the dark theme.
+import { useEffect, isValidElement } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 type Tone = "success" | "warning" | "danger";
@@ -12,13 +12,6 @@ const palettes = {
     text: { primary: "#f2f3f5", secondary: "#c2c5cc", tertiary: "#8b8f98", accent: "#6ea8ff", success: "#3fcf8e", warning: "#f2b84b", danger: "#ff6b6b", onColor: "#ffffff" },
     fill: { accent: "#2f6fe4", secondary: "#24262b", successSubtle: "rgba(63,207,142,.14)", warningSubtle: "rgba(242,184,75,.14)", dangerSubtle: "rgba(255,107,107,.14)", accentSubtle: "rgba(110,168,255,.12)" },
     border: { subtle: "#24262b", default: "#30333a", strong: "#454952" },
-  },
-  light: {
-    bg: "#ffffff",
-    paper: "#ffffff",
-    text: { primary: "#14161a", secondary: "#3d424b", tertiary: "#6b717c", accent: "#1f5fd6", success: "#167a4a", warning: "#9a6200", danger: "#c42b2b", onColor: "#ffffff" },
-    fill: { accent: "#2563eb", secondary: "#f1f2f4", successSubtle: "rgba(22,122,74,.10)", warningSubtle: "rgba(154,98,0,.10)", dangerSubtle: "rgba(196,43,43,.10)", accentSubtle: "rgba(31,95,214,.08)" },
-    border: { subtle: "#eceef1", default: "#dcdfe4", strong: "#c3c7ce" },
   },
 };
 
@@ -35,21 +28,9 @@ const base = {
   },
 };
 
-function useDark(): boolean {
-  const q = typeof window !== "undefined" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-  const [dark, setDark] = useState<boolean>(q ? q.matches : true);
-  useEffect(() => {
-    if (!q) return;
-    const f = (e: MediaQueryListEvent) => setDark(e.matches);
-    q.addEventListener("change", f);
-    return () => q.removeEventListener("change", f);
-  }, []);
-  return dark;
-}
-
 export function useGrokTheme() {
-  const dark = useDark();
-  return { ...base, ...(dark ? palettes.dark : palettes.light), kind: dark ? "dark" : "light" };
+  // Dark only: ignore OS/browser prefers-color-scheme.
+  return { ...base, ...palettes.dark, kind: "dark" as const };
 }
 
 const toneColor = (t: ReturnType<typeof useGrokTheme>, tone?: Tone | "info" | "neutral" | "accent") =>
