@@ -762,7 +762,9 @@ const overlaps = (a: number, b: number, c: number, d: number): boolean => Math.m
 type View = "all" | "morning" | "afternoon" | "saved";
 type SortableTab = "morning" | "afternoon";
 
-const appointmentPeriod = (b: Biz): "morning" | "afternoon" => {
+const DEFAULT_START = 13 * 60; // route slots are written for a 1 PM start
+
+const appointmentPeriod = (b: Biz, startTime: number = DEFAULT_START): "morning" | "afternoon" => {
   // Classify by the recommended time to visit, not by every hour the business
   // happens to be open. Otherwise a business open in both periods appears in both tabs.
   if (b.plannedWalk) {
@@ -770,7 +772,8 @@ const appointmentPeriod = (b: Biz): "morning" | "afternoon" => {
     return mins >= 720 || mins < 360 ? "afternoon" : "morning";
   }
   if (b.slot) {
-    const mins = toMin(b.slot);
+    // Slots are 12-hour strings ("1:30 PM"); use the actual arrival for the chosen start time.
+    const mins = ((arrivalAt(b, startTime) % 1440) + 1440) % 1440;
     return mins >= 720 || mins < 360 ? "afternoon" : "morning";
   }
   const firstTime = b.window.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
@@ -795,10 +798,10 @@ const appointmentPeriod = (b: Biz): "morning" | "afternoon" => {
   return afternoonMinutes > morningMinutes ? "afternoon" : "morning";
 };
 
-const inView = (b: Biz, v: View): boolean => {
+const inView = (b: Biz, v: View, startTime: number = DEFAULT_START): boolean => {
   if (v === "all") return true;
   if (v === "saved") return false;
-  return appointmentPeriod(b) === v;
+  return appointmentPeriod(b, startTime) === v;
 };
 
 interface Now {
@@ -951,7 +954,7 @@ export default function App() {
       list = BIZ.filter((b: Biz) =>
         !removed.includes(b.id) &&
         placements[b.id] !== "saved" &&
-        (placements[b.id] ? placements[b.id] === view : inView(b, view)),
+        (placements[b.id] ? placements[b.id] === view : inView(b, view, startTime)),
       );
     }
 
@@ -975,9 +978,19 @@ export default function App() {
       list.sort(savedOrder);
     }
     return list;
-  }, [view, order, removed, placements, selectedDay, sectionOrders]);
+  }, [view, order, removed, placements, selectedDay, sectionOrders, startTime]);
 
   const peers = (_b: Biz): Biz[] => visible;
+
+  // The sun/moon icon follows the section the card is shown in: Morning tab = sun,
+  // Afternoon tab = moon. In All / Saved it shows the card's group (a manual
+  // "Move to" placement wins over the computed visit time).
+  const periodFor = (b: Biz): "morning" | "afternoon" => {
+    if (view === "morning" || view === "afternoon") return view;
+    const placed = placements[b.id];
+    if (placed === "morning" || placed === "afternoon") return placed;
+    return appointmentPeriod(b, startTime);
+  };
 
   const move = (b: Biz, delta: number): void => {
     const list = peers(b);
@@ -1033,7 +1046,7 @@ export default function App() {
     return BIZ.filter((b: Biz) =>
       !removed.includes(b.id) &&
       placements[b.id] !== "saved" &&
-      (placements[b.id] ? placements[b.id] === v : inView(b, v)),
+      (placements[b.id] ? placements[b.id] === v : inView(b, v, startTime)),
     ).length;
   };
 
@@ -1229,17 +1242,18 @@ export default function App() {
               }}
             >
               {(view === "morning" || view === "afternoon")
-                ? `${(displayIndex ?? 0) + 1}. ${b.name}`
+                ? `${displayIndex ?? 1}. ${b.name}`
                 : b.route
                   ? `${displayIndex ?? b.walkOrder}. ${b.name}`
                   : b.name}
             </div>
             <span
-              title={appointmentPeriod(b) === "afternoon" ? "Afternoon appointment" : "Morning/day appointment"}
-              aria-label={appointmentPeriod(b) === "afternoon" ? "Afternoon appointment" : "Morning/day appointment"}
+              title={periodFor(b) === "afternoon" ? "Afternoon appointment" : "Morning appointment"}
+              aria-label={periodFor(b) === "afternoon" ? "Afternoon appointment" : "Morning appointment"}
+              data-period={periodFor(b)}
               style={{ fontSize: 26, lineHeight: 1, flexShrink: 0, padding: "2px 3px" }}
             >
-              {appointmentPeriod(b) === "afternoon" ? "🌙" : "☀️"}
+              {periodFor(b) === "afternoon" ? "🌙" : "☀️"}
             </span>
           </div>
           <div style={{ ...small, marginTop: 4, color: t.text.primary }}>
@@ -1335,8 +1349,9 @@ export default function App() {
     let routeNumber = 0;
     return (
       <div style={{ marginTop: 16, borderTop: `1px solid ${t.border.default}` }}>
-        {items.map((b: Biz) => {
-          const number = b.route ? ++routeNumber : undefined;
+        {items.map((b: Biz, i: number) => {
+          // Morning/Afternoon tabs number every card in tab order; other views number route stops only.
+          const number = view === "morning" || view === "afternoon" ? i + 1 : b.route ? ++routeNumber : undefined;
           return card(b, number);
         })}
       </div>
