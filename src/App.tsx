@@ -210,7 +210,7 @@ const BIZ: Biz[] = [
     hoursThu: "9 AM–7 PM",
     flag: "Open, in best window",
     flagTone: "success",
-    notes: "Redesign preview is live. Code is on GitHub; Vercel is not yet connected for automatic Git deploys.",
+    notes: "Official practice site confirms address, phone and hours. Vercel has two separate projects: abundant-health-chiropractic and abundant-health-chiropractic-git. The Git-connected project has a READY production deployment from repo abundancehealth (commit d259b7e); confirm which project/alias should be the canonical demo before changing the card URL.",
     hours: {
       mon: { open: "07:30", close: "17:30" },
       tue: { open: "09:00", close: "19:00" },
@@ -255,7 +255,7 @@ const BIZ: Biz[] = [
       sun: { open: "12:00", close: "02:00", display: "12 PM–2 AM (one listing says 2:30 AM)" },
     },
     hoursVerified: false,
-    hoursSource: "Downtown Stoughton Merchant Association lists Sunday noon–2 AM; Restaurantji lists noon–2:30 AM. Use 2 AM as the conservative listed close pending direct confirmation.",
+    hoursSource: "Conflicting current public listings: Downtown Stoughton Merchant Association lists Sunday noon–2 AM; Restaurantji lists noon–2:30 AM. Keep 2 AM as the conservative planning close until the business confirms directly.",
   },
   {
     id: "gemini",
@@ -450,7 +450,7 @@ const BIZ: Biz[] = [
     hoursThu: "7 AM–4 PM (shop; towing listed 24/7)",
     flag: "Repair-shop listing shows Mon–Fri 7 AM–4 PM, closed weekends; other listings advertise 24-hour towing. Confirm walk-in availability before visiting.",
     flagTone: "warning",
-    notes: "Phone conflict: local directories list (608) 334-3672, BBB lists (608) 723-8611. Services listed: auto repair, brakes, oil changes, A/C, transmission and truck repair, towing and recovery, lockouts, jump starts.",
+    notes: "Phone cross-check: (608) 334-3672 appears on multiple local business directories and the business website listing; BBB lists (608) 723-8611 as an alternate contact. Use (608) 334-3672 as the primary number, but retain the BBB number as an unconfirmed alternate. Loc8NearMe lists the repair shop Mon–Fri 7 AM–4 PM and closed weekends; towing listings advertise 24-hour service. Services include auto repair, brakes, oil changes, A/C, transmission/truck repair, towing and recovery, lockouts and jump starts.",
     hours: {
       mon: { open: "07:00", close: "16:00" },
       tue: { open: "07:00", close: "16:00" },
@@ -485,7 +485,7 @@ const BIZ: Biz[] = [
     hoursThu: "7 AM–5 PM",
     flag: "Morning prospect. Call before visiting; this is a masonry contractor and the owner may be at a job site.",
     flagTone: "warning",
-    notes: "Public listings show Brick Works Masonry LLC at 833 Garfield St, Stoughton, WI 53589. Phone numbers conflict: Houzz and DOT records list (608) 575-9364; Yellow Pages lists (608) 873-3810. The sample site contains placeholders that must be confirmed, and its four Google Business listing photos are for the pitch only until permission is confirmed.",
+    notes: "Business identity/address are corroborated at 833 Garfield St, Stoughton, WI 53589. Phone conflict: Houzz and USDOT registration list (608) 575-9364; Yellow Pages lists (608) 873-3810. Treat (608) 575-9364 as the better-supported number, but verify by calling. The sample site still contains placeholders; do not publish them as facts. Listing photos are for the private pitch only unless permission is confirmed.",
     hours: {
       mon: { open: "07:00", close: "17:00" },
       tue: { open: "07:00", close: "17:00" },
@@ -498,33 +498,7 @@ const BIZ: Biz[] = [
     hoursVerified: true,
     hoursSource: "Yellow Pages and Masonry Directory USA list Mon–Fri 7 AM–5 PM and Sat–Sun 8 AM–noon; call to confirm before visiting.",
   },
-  {
-    id: "ohbrothers",
-    name: "OH! Brothers",
-    town: "Stoughton",
-    owner: "Owner/contact not confirmed",
-    oldUrl: "",
-    oldStatus: "None",
-    oldNote: "No official business website identified yet; verify current web and social presence before pitching.",
-    demoUrl: "https://oh-brothers.vercel.app",
-    updated: "2026-10-26",
-    updatedLabel: "Oct 26, 2026",
-    stage: "Demo built",
-    repo: "OH-Brothers",
-    route: false,
-    defaultView: "morning",
-    walkOrder: 12,
-    slot: "",
-    window: "Business identity and hours unverified; confirm before visiting",
-    address: "121 E Main St",
-    hoursThu: "Unverified — business/address mismatch",
-    flag: "Unable to verify OH! Brothers as a current business at this address. Public listings identify Wendigo at 121 E Main St; confirm the business identity before planning a visit.",
-    flagTone: "warning",
-    notes: "The project README describes OH! Brothers as a breakfast-and-lunch concept at 121 E Main St, but I could not find a current public listing for a business by that name. Current local listings identify Wendigo at this address. Do not assume Wendigo's hours belong to OH! Brothers; verify the intended business before visiting or pitching.",
-    hours: every({ unknown: true }),
-    hoursVerified: false,
-    hoursSource: "No reliable public hours found because the business identity at 121 E Main St could not be verified; current listings identify Wendigo at that address.",
-  },
+
 ];
 
 interface Site {
