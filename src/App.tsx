@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { Page, Section, Text, Table, Segmented, Callout, Button, Status, NoSite, useGrokTheme } from "./kit";
 
@@ -654,34 +654,34 @@ const BIZ: Biz[] = [
     owner: "Phil Caravello (owner; directory-listed)",
     oldUrl: "https://www.stotoncycle.com/",
     oldStatus: "Live",
-    oldNote: "Existing website is live; the new Vercel project does not have a deployment yet.",
+    oldNote: "Official site is live and gives product categories, service scope and the shop phone. Redesign concept is committed to GitHub; Vercel deployment is pending.",
     demoUrl: "",
-    updated: "2026-10-26",
-    updatedLabel: "",
-    stage: "Vercel project created · not deployed",
+    updated: "2026-10-27",
+    updatedLabel: "Oct 27, 2026 · source committed",
+    stage: "Redesign built · deployment pending",
     repo: "stoughton-cycle",
     vercelUrl: "https://vercel.com/mdp-solo/stoughton-cycle",
     route: false,
     defaultView: "morning",
     walkOrder: 16,
     slot: "",
-    window: "Tue–Sat 10 AM–noon; call first if you need to meet the owner",
+    window: "Tue–Sat 10 AM–noon is a reasonable first approach window; call first to confirm Phil is in",
     address: "100 W Washington St",
-    hoursThu: "10 AM–6 PM (one local listing says Thu until 7 PM)",
-    flag: "The current site is live. The new Vercel project has no deployment or assigned domain yet.",
+    hoursThu: "Tue 10 AM–6 PM; Wed 10 AM–6 PM; Thu 10 AM–7 PM; Fri 10 AM–6 PM; Sat 10 AM–4 PM",
+    flag: "Independent bike shop; weekdays during shop hours are a possible visit window, but call to confirm the owner is available.",
     flagTone: "warning",
-    notes: "Phone: (608) 877-1134. Stoton Cycle sells and services bicycles, including e-bikes. Owner name Phil Caravello appears in a cycling directory; verify directly. The official website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Confirm hours before visiting.",
+    notes: "Phone: (608) 877-1134. Owner listed by Avid Cyclist: Phil Caravello; that directory says he has run the business since 1995, but verify directly. Official site describes a full-service shop, road/mountain/BMX/kids/women-specific bicycles, service on bikes old and new, flats, tune-ups, overhauls and accessories. The Chamber confirms e-bike sales and service. Bianchi is featured on the current site. Hours conflict Thursday: official site says 10 AM–6 PM; Downtown Stoughton currently lists 10 AM–7 PM. Confirm hours, ownership, product availability and image permission before launch. Redesigned one-page demo source is in GitHub; Vercel project currently has no successful deployment.",
     hours: {
       mon: { closed: true },
       tue: { open: "10:00", close: "18:00" },
       wed: { open: "10:00", close: "18:00" },
-      thu: { open: "10:00", close: "18:00", display: "10 AM–6 PM (one listing says 7 PM)" },
+      thu: { open: "10:00", close: "19:00", display: "10 AM–7 PM (official site says 6 PM)" },
       fri: { open: "10:00", close: "18:00" },
       sat: { open: "10:00", close: "16:00" },
       sun: { closed: true },
     },
     hoursVerified: false,
-    hoursSource: "Official Stoton Cycle website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Confirm directly.",
+    hoursSource: "Official Stoton Cycle website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Current hours need direct confirmation.",
   },
 ];
 
@@ -990,6 +990,14 @@ export default function App() {
   const [placements, setPlacements] = useState<Record<string, View>>(loadPlacements);
   const [sectionOrders, setSectionOrders] = useState<Partial<Record<SortableTab, string[]>>>(loadSectionOrders);
   const [pending, setPending] = useState<string>("");
+  const [moving, setMoving] = useState<{ id: string; target: View; token: number } | null>(null);
+  const [moveToast, setMoveToast] = useState("");
+  const moveToken = useRef(0);
+  const movingRef = useRef<{ id: string; target: View; token: number } | null>(null);
+  const moveTimer = useRef<number | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const previousCardRects = useRef<Map<string, DOMRect>>(new Map());
   const [now, setNow] = useState<Now>(nowCentral());
 
   useEffect(() => {
@@ -1023,7 +1031,7 @@ export default function App() {
     if (view === "saved") {
       list = BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] === "saved");
     } else if (view === "all") {
-      list = BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] !== "saved");
+      list = BIZ.filter((b: Biz) => !removed.includes(b.id) && (!placements[b.id] || placements[b.id] === "all"));
     } else {
       list = BIZ.filter((b: Biz) =>
         !removed.includes(b.id) &&
@@ -1055,6 +1063,42 @@ export default function App() {
   }, [view, order, removed, placements, selectedDay, sectionOrders, startTime]);
 
   const peers = (_b: Biz): Biz[] => visible;
+
+  useLayoutEffect(() => {
+    const nextRects = new Map<string, DOMRect>();
+    cardRefs.current.forEach((node, id) => {
+      if (node.isConnected) nextRects.set(id, node.getBoundingClientRect());
+    });
+
+    if (previousCardRects.current.size > 0) {
+      nextRects.forEach((rect, id) => {
+        const previous = previousCardRects.current.get(id);
+        const node = cardRefs.current.get(id);
+        if (!previous || !node || !node.isConnected) return;
+        const dx = previous.left - rect.left;
+        const dy = previous.top - rect.top;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+
+        node.style.transition = "none";
+        node.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+        node.getBoundingClientRect();
+        window.requestAnimationFrame(() => {
+          if (!node.isConnected) return;
+          node.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
+          node.style.transform = "";
+          window.setTimeout(() => {
+            if (node.isConnected && !node.style.transform) node.style.transition = "";
+          }, 360);
+        });
+      });
+    }
+    previousCardRects.current = nextRects;
+  }, [visible]);
+
+  useEffect(() => () => {
+    if (moveTimer.current !== null) window.clearTimeout(moveTimer.current);
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+  }, []);
 
   // The sun/moon marker reflects the actual listed hours for the currently
   // selected day, independently of which dashboard section the card is in.
@@ -1124,10 +1168,36 @@ export default function App() {
     setPending("");
   };
 
+  const finishMove = (token: number): void => {
+    const pendingMove = movingRef.current;
+    if (!pendingMove || pendingMove.token !== token) return;
+    if (moveTimer.current !== null) window.clearTimeout(moveTimer.current);
+    moveTimer.current = null;
+    movingRef.current = null;
+    setPlacements((current) => ({ ...current, [pendingMove.id]: pendingMove.target }));
+    setMoving(null);
+    const destination = pendingMove.target === "saved"
+      ? "Saved for later"
+      : pendingMove.target[0].toUpperCase() + pendingMove.target.slice(1);
+    setMoveToast(`Moved to ${destination}`);
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setMoveToast(""), 1900);
+  };
+
   const moveTo = (id: string, target: View): void => {
-    setPlacements({ ...placements, [id]: target });
     setPending("");
-    setView(target);
+    if (movingRef.current) finishMove(movingRef.current.token);
+
+    // Keep the selected section unchanged. Animate the card before committing the move.
+    if (target === view) {
+      setPlacements((current) => ({ ...current, [id]: target }));
+      return;
+    }
+
+    const nextMove = { id, target, token: ++moveToken.current };
+    movingRef.current = nextMove;
+    setMoving(nextMove);
+    moveTimer.current = window.setTimeout(() => finishMove(nextMove.token), 420);
   };
 
   const reordered =
@@ -1142,7 +1212,7 @@ export default function App() {
 
   const countFor = (v: View): number => {
     if (v === "saved") return BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] === "saved").length;
-    if (v === "all") return BIZ.filter((b: Biz) => !removed.includes(b.id) && placements[b.id] !== "saved").length;
+    if (v === "all") return BIZ.filter((b: Biz) => !removed.includes(b.id) && (!placements[b.id] || placements[b.id] === "all")).length;
     return BIZ.filter((b: Biz) =>
       !removed.includes(b.id) &&
       placements[b.id] !== "saved" &&
@@ -1319,6 +1389,16 @@ export default function App() {
   const card = (b: Biz, displayIndex?: number) => (
     <div
       key={b.id}
+      ref={(node) => {
+        if (node) cardRefs.current.set(b.id, node);
+        else cardRefs.current.delete(b.id);
+      }}
+      className={moving?.id === b.id ? "hub-listing-card is-moving-out" : "hub-listing-card"}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && event.animationName === "listing-pop-out" && moving?.id === b.id) {
+          finishMove(moving.token);
+        }
+      }}
       style={{
         padding: "16px",
         marginBottom: 12,
@@ -1541,7 +1621,9 @@ export default function App() {
           {reordered && <Button label="Reset order" onClick={resetOrder} />}
         </div>
         <Text>
-          Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Afternoon starts sorted by earliest opening time for the selected day. Use Up and Down to set a manual order independently for Morning or Afternoon; those choices and saved-for-later placements persist in this browser.
+          {view === "all"
+            ? "All is your unassigned work queue. Moving a listing to Morning, Afternoon, or Saved for later clears it from All. The dashboard stays on the section you are viewing while the card pops out and the remaining cards slide into place."
+            : "Morning means posted hours overlap 6 AM–noon; afternoon means noon–6 AM, so late-night spots count. Afternoon starts sorted by earliest opening time for the selected day. Use Up and Down to set a manual order independently for Morning or Afternoon; those choices and saved-for-later placements persist in this browser."}
         </Text>
         {view === "saved" ? (
           visible.length > 0 ? (
@@ -1577,5 +1659,10 @@ export default function App() {
         <Text>Finished builds on Vercel that aren't walk stops yet. Current sites were checked Oct 26, 2026; hours and contacts aren't sourced yet.</Text>
       </Section>
     </Page>
+      {moveToast && (
+        <div className="hub-move-toast" role="status" aria-live="polite">
+          <span aria-hidden="true">✦</span> {moveToast}
+        </div>
+      )}
   );
 }
