@@ -6,3 +6,42 @@ body {
 }
 a:hover { opacity: 0.85; }
 button:focus-visible { outline: 2px solid #4c8dff; outline-offset: 2px; }
+
+/* "No Site" — Mario Super Star / Rainbow Road: saturated full-spectrum
+   gradient clipped to the text, sliding and hue-cycling continuously. */
+.no-site {
+  display: inline-block;
+  font-family: "Press Start 2P", "Arial Black", "Helvetica Neue", Impact, system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  white-space: nowrap;
+  padding: 1px 0;
+  background-image: repeating-linear-gradient(90deg,
+    #ff0040 0px, #ff8a00 7px, #ffe600 14px, #2bff00 21px, #00e5ff 28px,
+    #2f6bff 35px, #b400ff 42px, #ff00c8 49px, #ff0040 56px);
+  background-size: 56px 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.75)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
+  animation: no-site-star 1.5s linear infinite;
+}
+@keyframes no-site-star {
+  0%   { background-position: 0 50%;    }
+  100% { background-position: 56px 50%; }
+}
+/* hue flash layered on top of the slide, like the invincibility flicker */
+@supports (filter: hue-rotate(0deg)) {
+  .no-site { animation: no-site-star 1.5s linear infinite, no-site-flash 1.5s steps(6) infinite; }
+  @keyframes no-site-flash {
+    0%   { filter: hue-rotate(0deg)   drop-shadow(1px 1px 0 rgba(0,0,0,.75)) drop-shadow(0 0 2px rgba(255,255,255,.35)); }
+    100% { filter: hue-rotate(360deg) drop-shadow(1px 1px 0 rgba(0,0,0,.75)) drop-shadow(0 0 2px rgba(255,255,255,.35)); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .no-site { animation: none; filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.75)); }
+}

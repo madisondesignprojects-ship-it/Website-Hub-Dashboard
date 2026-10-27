@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import type { CSSProperties } from "react";
-import { Page, Section, Text, Table, Segmented, Callout, Button, Status, useGrokTheme } from "./kit";
+import { Page, Section, Text, Table, Segmented, Callout, Button, Status, NoSite, useGrokTheme } from "./kit";
 
 type OldStatus = "Live" | "Down" | "None" | "Unknown";
 type FlagTone = "success" | "warning" | "danger";
@@ -24,6 +24,7 @@ interface Biz {
   owner: string;
   oldUrl: string;
   oldStatus: OldStatus;
+  noSite?: boolean; // no website at all, or only social/directory listings
   oldNote: string;
   demoUrl: string;
   updated: string; // ISO, Central
@@ -263,8 +264,9 @@ const BIZ: Biz[] = [
     town: "Stoughton",
     owner: "Current owner unknown (opened 2019 by Brianna & Tyler Fero)",
     oldUrl: "https://www.facebook.com/geminigamingstoughton",
-    oldStatus: "Live",
-    oldNote: "Facebook page. geminigamingstoughton.com just redirects there.",
+    oldStatus: "None",
+    noSite: true,
+    oldNote: "Facebook page only. geminigamingstoughton.com just redirects there.",
     demoUrl: "https://gemini-games-ten.vercel.app",
     updated: "2026-10-22",
     updatedLabel: "Oct 22",
@@ -433,9 +435,10 @@ const BIZ: Biz[] = [
     name: "Main & Page Auto & Towing",
     town: "Stoughton",
     owner: "Owner/contact not confirmed",
-    oldUrl: "https://mainpageauto.com",
-    oldStatus: "Unknown",
-    oldNote: "Listed as the current website; live availability not independently confirmed.",
+    oldUrl: "",
+    oldStatus: "None",
+    noSite: true,
+    oldNote: "mainpageauto.com was listed as the website, but the domain isn't registered (checked Oct 26, 2026).",
     demoUrl: "https://main-page-auto-towing.vercel.app",
     updated: "2026-10-25T19:10",
     updatedLabel: "Oct 25, 7:10 PM",
@@ -470,6 +473,7 @@ const BIZ: Biz[] = [
     owner: "Owner/contact not confirmed",
     oldUrl: "",
     oldStatus: "None",
+    noSite: true,
     oldNote: "No official business website identified in this check; verify current web and social presence before pitching.",
     demoUrl: "https://oh-brothers.vercel.app",
     updated: "2026-10-26",
@@ -503,9 +507,10 @@ const BIZ: Biz[] = [
     name: "Brick Works Masonry",
     town: "Stoughton",
     owner: "Owner/contact not confirmed",
-    oldUrl: "https://www.brickworksmasonry.com",
-    oldStatus: "Unknown",
-    oldNote: "Houzz lists this as the business website, but it could not be verified during the current check. Confirm whether the domain is still active before pitching.",
+    oldUrl: "",
+    oldStatus: "None",
+    noSite: true,
+    oldNote: "Houzz lists brickworksmasonry.com as the website, but the domain isn't registered (checked Oct 26, 2026).",
     demoUrl: "https://brick-works-masonry.vercel.app",
     updated: "2026-10-26",
     updatedLabel: "Oct 26, 2026",
@@ -577,6 +582,7 @@ interface Site {
   demoUrl: string;
   oldUrl: string;
   oldStatus: OldStatus;
+  noSite?: boolean;
   deployed: string;
   repo: string;
   notes: string;
@@ -588,7 +594,8 @@ const SITES: Site[] = [
     town: "Cottage Grove",
     demoUrl: "https://carpetcleanersmadison.vercel.app",
     oldUrl: "",
-    oldStatus: "Unknown",
+    oldStatus: "None",
+    noSite: true,
     deployed: "Oct 21, 7:23 PM",
     repo: "",
     notes: "No official site found; directory listings only. Directories list 360 Progress Dr Ste 205 and owner Scott Hosking.",
@@ -598,7 +605,8 @@ const SITES: Site[] = [
     town: "Stoughton",
     demoUrl: "https://rockwell-painting.vercel.app",
     oldUrl: "",
-    oldStatus: "Unknown",
+    oldStatus: "None",
+    noSite: true,
     deployed: "Oct 21, 6:14 PM",
     repo: "Rockwell-Painting",
     notes: "No current site found. BBB lists 1766 Drotning Rd and Vincent Rockwell, president.",
@@ -607,11 +615,12 @@ const SITES: Site[] = [
     name: "C. R. Laudolff Fine Carpentry",
     town: "Fond du Lac",
     demoUrl: "https://cr-laudolff-carpentry-preview.vercel.app",
-    oldUrl: "http://crlaudolffcarpentry.com",
-    oldStatus: "Down",
+    oldUrl: "",
+    oldStatus: "None",
+    noSite: true,
     deployed: "Oct 21, 6:14 PM",
     repo: "WW",
-    notes: "Listed site did not load when checked Oct 26. Some listings place the business in Cottage Grove instead.",
+    notes: "Listed site crlaudolffcarpentry.com isn't a registered domain (checked Oct 26). Some listings place the business in Cottage Grove instead.",
   },
   {
     name: "Yahara Chocolate",
@@ -638,20 +647,22 @@ const SITES: Site[] = [
     town: "Cottage Grove and Fitchburg",
     demoUrl: "https://thundercatfireworks.vercel.app",
     oldUrl: "",
-    oldStatus: "Unknown",
+    oldStatus: "None",
+    noSite: true,
     deployed: "Oct 18, 11:38 AM",
     repo: "Fireworks",
-    notes: "Directory-listed sites (thundercatfireworkswi.com, thundercatfireworks.com, thundercatfireworks.net) did not load when checked Oct 26.",
+    notes: "No working site: directory-listed thundercatfireworkswi.com isn't registered, thundercatfireworks.com didn't load, and thundercatfireworks.net is a Squarespace \"Coming Soon\" placeholder (checked Oct 26).",
   },
   {
     name: "Glow by Chlo",
     town: "",
     demoUrl: "https://glowbychlo.vercel.app",
     oldUrl: "",
-    oldStatus: "Unknown",
+    oldStatus: "None",
+    noSite: true,
     deployed: "Oct 15, 10:51 AM",
     repo: "est_poject",
-    notes: "Current site not confirmed; the demo links to Instagram @glowbychlo.esthetics.",
+    notes: "Instagram only (@glowbychlo.esthetics); no website found.",
   },
   {
     name: "Jeff's Guitar Clinic",
@@ -1246,9 +1257,13 @@ export default function App() {
           <div>
             <div style={label}>
               Current site ·{" "}
-              <span style={{ color: statusColor(b.oldStatus), fontWeight: t.weight.medium }}>
-                {b.oldStatus === "None" ? "none found" : b.oldStatus === "Unknown" ? "not confirmed" : b.oldStatus.toLowerCase()}
-              </span>
+              {b.noSite ? (
+                <NoSite />
+              ) : (
+                <span style={{ color: statusColor(b.oldStatus), fontWeight: t.weight.medium }}>
+                  {b.oldStatus === "None" ? "none found" : b.oldStatus === "Unknown" ? "not confirmed" : b.oldStatus.toLowerCase()}
+                </span>
+              )}
             </div>
             {b.oldUrl && (
               <a href={b.oldUrl} target="_blank" rel="noopener noreferrer" style={{ ...linkBtn(false), marginTop: 4 }}>
@@ -1387,7 +1402,9 @@ export default function App() {
             x.name,
             x.town,
             a(x.demoUrl, `${host(x.demoUrl)} ↗`),
-            x.oldUrl
+            x.noSite
+              ? <NoSite />
+              : x.oldUrl
               ? { text: `${host(x.oldUrl)} · ${x.oldStatus === "Live" ? "live" : "down"}`, tone: (x.oldStatus === "Live" ? "success" : "danger") as FlagTone }
               : "Not confirmed",
             x.deployed,

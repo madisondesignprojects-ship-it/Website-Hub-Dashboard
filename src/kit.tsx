@@ -208,3 +208,12 @@ export function Segmented<T extends string = string>(props: { options: SegOpt<T>
   );
 }
 
+
+/** "No Site" label: Super Star–style cycling rainbow text (see .no-site in styles.css). */
+export function NoSite() {
+  return (
+    <span className="no-site" title="No website: none found, or only social/directory listings">
+      No Site
+    </span>
+  );
+}
