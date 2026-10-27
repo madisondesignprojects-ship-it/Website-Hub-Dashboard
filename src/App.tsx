@@ -654,11 +654,11 @@ const BIZ: Biz[] = [
     owner: "Phil Caravello (owner; directory-listed)",
     oldUrl: "https://www.stotoncycle.com/",
     oldStatus: "Live",
-    oldNote: "Official site is live and gives product categories, service scope and the shop phone. Redesign concept is committed to GitHub; Vercel deployment is pending.",
-    demoUrl: "",
+    oldNote: "Official site is live and gives product categories, service scope and the shop phone. Redesign demo is live on GitHub Pages.",
+    demoUrl: "https://madisondesignprojects-ship-it.github.io/stoughton-cycle/",
     updated: "2026-10-27",
-    updatedLabel: "Oct 27, 2026 · source committed",
-    stage: "Redesign built · deployment pending",
+    updatedLabel: "Oct 27, 2026 · live on GitHub Pages",
+    stage: "Demo live",
     repo: "stoughton-cycle",
     vercelUrl: "https://vercel.com/mdp-solo/stoughton-cycle",
     route: false,
@@ -670,7 +670,7 @@ const BIZ: Biz[] = [
     hoursThu: "Tue 10 AM–6 PM; Wed 10 AM–6 PM; Thu 10 AM–7 PM; Fri 10 AM–6 PM; Sat 10 AM–4 PM",
     flag: "Independent bike shop; weekdays during shop hours are a possible visit window, but call to confirm the owner is available.",
     flagTone: "warning",
-    notes: "Phone: (608) 877-1134. Owner listed by Avid Cyclist: Phil Caravello; that directory says he has run the business since 1995, but verify directly. Official site describes a full-service shop, road/mountain/BMX/kids/women-specific bicycles, service on bikes old and new, flats, tune-ups, overhauls and accessories. The Chamber confirms e-bike sales and service. Bianchi is featured on the current site. Hours conflict Thursday: official site says 10 AM–6 PM; Downtown Stoughton currently lists 10 AM–7 PM. Confirm hours, ownership, product availability and image permission before launch. Redesigned one-page demo source is in GitHub; Vercel project currently has no successful deployment.",
+    notes: "Phone: (608) 877-1134. Owner listed by Avid Cyclist: Phil Caravello; that directory says he has run the business since 1995, but verify directly. Official site describes a full-service shop, road/mountain/BMX/kids/women-specific bicycles, service on bikes old and new, flats, tune-ups, overhauls and accessories. The Chamber confirms e-bike sales and service. Bianchi is featured on the current site. Hours conflict Thursday: official site says 10 AM–6 PM; Downtown Stoughton currently lists 10 AM–7 PM. Confirm hours, ownership, product availability and image permission before launch. Redesigned one-page demo is live on GitHub Pages.",
     hours: {
       mon: { closed: true },
       tue: { open: "10:00", close: "18:00" },
@@ -1665,11 +1665,11 @@ export default function App() {
         />
         <Text>Finished builds on Vercel that aren't walk stops yet. Current sites were checked Oct 26, 2026; hours and contacts aren't sourced yet.</Text>
       </Section>
-    </Page>
       {moveToast && (
         <div className="hub-move-toast" role="status" aria-live="polite">
           <span aria-hidden="true">✦</span> {moveToast}
         </div>
       )}
+    </Page>
   );
 }
