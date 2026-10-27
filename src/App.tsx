@@ -1485,6 +1485,13 @@ export default function App() {
               <a href={b.demoUrl} target="_blank" rel="noopener noreferrer" style={{ ...linkBtn(true), marginTop: 4 }}>
                 {host(b.demoUrl)} ↗
               </a>
+            ) : b.vercelUrl ? (
+              <>
+                <a href={b.vercelUrl} target="_blank" rel="noopener noreferrer" style={{ ...linkBtn(true), marginTop: 4 }}>
+                  Open Vercel project ↗
+                </a>
+                <div style={{ ...small, marginTop: 5, color: t.text.warning }}>Demo source is in GitHub; public preview is pending deployment.</div>
+              </>
             ) : (
               <div style={{ ...small, marginTop: 4, color: t.text.warning }}>No demo yet</div>
             )}
