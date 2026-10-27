@@ -982,14 +982,40 @@ export default function App() {
 
   const peers = (_b: Biz): Biz[] => visible;
 
-  // The sun/moon icon follows the section the card is shown in: Morning tab = sun,
-  // Afternoon tab = moon. In All / Saved it shows the card's group (a manual
-  // "Move to" placement wins over the computed visit time).
-  const periodFor = (b: Biz): "morning" | "afternoon" => {
-    if (view === "morning" || view === "afternoon") return view;
-    const placed = placements[b.id];
-    if (placed === "morning" || placed === "afternoon") return placed;
-    return appointmentPeriod(b, startTime);
+  // The sun/moon marker reflects the actual listed hours for the currently
+  // selected day, independently of which dashboard section the card is in.
+  // "Day" is 6 AM–6 PM; hours are classified by which period contains more
+  // of the business's listed open time. Overnight closing times are supported.
+  const hoursIconFor = (b: Biz): "sun" | "moon" | "closed" | "unknown" => {
+    const h = b.hours[selectedDay];
+    if (!h) return "unknown";
+    if (h.closed) return "closed";
+    if (h.unknown || !h.open || !h.close) return "unknown";
+
+    const start = toMin(h.open);
+    let end = toMin(h.close);
+    if (end <= start) end += 1440; // closes after midnight
+
+    const overlap = (a: number, b: number, c: number, d: number): number =>
+      Math.max(0, Math.min(b, d) - Math.max(a, c));
+
+    let daytimeMinutes = 0;
+    // The open interval can continue into the following calendar day.
+    for (const offset of [0, 1440]) {
+      daytimeMinutes += overlap(start, end, offset + 360, offset + 1080);
+    }
+    const totalMinutes = end - start;
+    const nighttimeMinutes = Math.max(0, totalMinutes - daytimeMinutes);
+    return daytimeMinutes >= nighttimeMinutes ? "sun" : "moon";
+  };
+
+  const hoursIconLabelFor = (b: Biz): string => {
+    const dayName = DAY_NAMES[selectedDay];
+    const kind = hoursIconFor(b);
+    if (kind === "sun") return `Mostly daytime hours on ${dayName}`;
+    if (kind === "moon") return `Mostly evening/night hours on ${dayName}`;
+    if (kind === "closed") return `Listed as closed on ${dayName}`;
+    return `Hours unavailable or unconfirmed for ${dayName}`;
   };
 
   const move = (b: Biz, delta: number): void => {
@@ -1248,12 +1274,18 @@ export default function App() {
                   : b.name}
             </div>
             <span
-              title={periodFor(b) === "afternoon" ? "Afternoon appointment" : "Morning appointment"}
-              aria-label={periodFor(b) === "afternoon" ? "Afternoon appointment" : "Morning appointment"}
-              data-period={periodFor(b)}
+              title={hoursIconLabelFor(b)}
+              aria-label={hoursIconLabelFor(b)}
+              data-hours-period={hoursIconFor(b)}
               style={{ fontSize: 26, lineHeight: 1, flexShrink: 0, padding: "2px 3px" }}
             >
-              {periodFor(b) === "afternoon" ? "🌙" : "☀️"}
+              {hoursIconFor(b) === "sun"
+                ? "☀️"
+                : hoursIconFor(b) === "moon"
+                  ? "🌙"
+                  : hoursIconFor(b) === "closed"
+                    ? "—"
+                    : "◷"}
             </span>
           </div>
           <div style={{ ...small, marginTop: 4, color: t.text.primary }}>
