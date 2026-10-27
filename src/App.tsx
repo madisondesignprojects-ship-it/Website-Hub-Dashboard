@@ -682,7 +682,8 @@ type View = "all" | "morning" | "afternoon" | "saved";
 type SortableTab = "morning" | "afternoon";
 
 const appointmentPeriod = (b: Biz): "morning" | "afternoon" => {
-  if (b.defaultView) return b.defaultView;
+  // Classify by the recommended time to visit, not by every hour the business
+  // happens to be open. Otherwise a business open in both periods appears in both tabs.
   if (b.plannedWalk) {
     const mins = toMin(b.plannedWalk.time);
     return mins >= 720 || mins < 360 ? "afternoon" : "morning";
@@ -697,23 +698,26 @@ const appointmentPeriod = (b: Biz): "morning" | "afternoon" => {
     if (firstTime[3].toUpperCase() === "PM") hour += 12;
     return hour >= 12 || hour < 6 ? "afternoon" : "morning";
   }
-  return inView(b, "afternoon") ? "afternoon" : "morning";
+  if (b.defaultView) return b.defaultView;
+
+  // For businesses without a recommended window, use the period with the
+  // greatest total overlap across their posted weekly opening hours.
+  let morningMinutes = 0;
+  let afternoonMinutes = 0;
+  for (const [day] of DAYS) {
+    for (const [start, end] of spans(b.hours[day])) {
+      morningMinutes += Math.max(0, Math.min(end, 720) - Math.max(start, 360));
+      afternoonMinutes += Math.max(0, Math.min(end, 1440) - Math.max(start, 720));
+      afternoonMinutes += Math.max(0, Math.min(end, 360) - Math.max(start, 0));
+    }
+  }
+  return afternoonMinutes > morningMinutes ? "afternoon" : "morning";
 };
 
 const inView = (b: Biz, v: View): boolean => {
   if (v === "all") return true;
   if (v === "saved") return false;
-  if (b.defaultView) return b.defaultView === v;
-  if (b.plannedWalk) {
-    const t = toMin(b.plannedWalk.time);
-    if (v === "morning" && t >= 360 && t < 720) return true;
-    if (v === "afternoon" && (t >= 720 || t < 360)) return true;
-  }
-  return DAYS.some(([k]: [DayKey, string]) =>
-    spans(b.hours[k]).some(([x, y]: [number, number]) =>
-      v === "morning" ? overlaps(x, y, 360, 720) : overlaps(x, y, 720, 1440) || overlaps(x, y, 0, 360),
-    ),
-  );
+  return appointmentPeriod(b) === v;
 };
 
 interface Now {
