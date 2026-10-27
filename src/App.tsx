@@ -681,7 +681,7 @@ const BIZ: Biz[] = [
       sun: { closed: true },
     },
     hoursVerified: false,
-    hoursSource: "Official Stoton Cycle website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Current hours need direct confirmation.",
+    hoursSource: "Conflicting public hours: official Stoton Cycle website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Confirm current hours directly.",
   },
 ];
 
