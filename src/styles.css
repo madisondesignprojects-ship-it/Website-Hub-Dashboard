@@ -88,6 +88,7 @@ button:focus-visible { outline: 2px solid #4c8dff; outline-offset: 2px; }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
+  .hub-listing-card { transition: none !important; will-change: auto; }
   .hub-listing-card.is-moving-out,
   .hub-move-toast { animation: none; }
 }
