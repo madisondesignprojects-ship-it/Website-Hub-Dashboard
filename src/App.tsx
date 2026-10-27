@@ -32,6 +32,7 @@ interface Biz {
   stage: string;
   repo: string;
   repoUrl?: string;
+  vercelUrl?: string;
   route: boolean;
   defaultView?: "morning" | "afternoon";
   walkOrder: number;
@@ -644,6 +645,43 @@ const BIZ: Biz[] = [
     },
     hoursVerified: false,
     hoursSource: "Stoughton Chamber listing gives general hours of 9 AM–8 PM but does not specify days; confirm directly before visiting.",
+  },
+
+  {
+    id: "stoughton-cycle",
+    name: "Stoton Cycle",
+    town: "Stoughton",
+    owner: "Phil Caravello (owner; directory-listed)",
+    oldUrl: "https://www.stotoncycle.com/",
+    oldStatus: "Live",
+    oldNote: "Existing website is live; the new Vercel project does not have a deployment yet.",
+    demoUrl: "",
+    updated: "2026-10-26",
+    updatedLabel: "",
+    stage: "Vercel project created · not deployed",
+    repo: "stoughton-cycle",
+    vercelUrl: "https://vercel.com/mdp-solo/stoughton-cycle",
+    route: false,
+    defaultView: "morning",
+    walkOrder: 16,
+    slot: "",
+    window: "Tue–Sat 10 AM–noon; call first if you need to meet the owner",
+    address: "100 W Washington St",
+    hoursThu: "10 AM–6 PM (one local listing says Thu until 7 PM)",
+    flag: "The current site is live. The new Vercel project has no deployment or assigned domain yet.",
+    flagTone: "warning",
+    notes: "Phone: (608) 877-1134. Stoton Cycle sells and services bicycles, including e-bikes. Owner name Phil Caravello appears in a cycling directory; verify directly. The official website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Confirm hours before visiting.",
+    hours: {
+      mon: { closed: true },
+      tue: { open: "10:00", close: "18:00" },
+      wed: { open: "10:00", close: "18:00" },
+      thu: { open: "10:00", close: "18:00", display: "10 AM–6 PM (one listing says 7 PM)" },
+      fri: { open: "10:00", close: "18:00" },
+      sat: { open: "10:00", close: "16:00" },
+      sun: { closed: true },
+    },
+    hoursVerified: false,
+    hoursSource: "Official Stoton Cycle website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Confirm directly.",
   },
 ];
 
@@ -1406,6 +1444,12 @@ export default function App() {
             <div>
               <div style={label}>GitHub</div>
               {a(b.repoUrl ?? `https://github.com/madisondesignprojects-ship-it/${b.repo}`, b.repo)}
+            </div>
+          )}
+          {b.vercelUrl && (
+            <div>
+              <div style={label}>Vercel project</div>
+              {a(b.vercelUrl, "stoughton-cycle ↗")}
             </div>
           )}
         </div>
