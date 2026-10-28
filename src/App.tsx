@@ -660,6 +660,7 @@ const BIZ: Biz[] = [
     updatedLabel: "Oct 27, 2026 · live on GitHub Pages",
     stage: "Demo live",
     repo: "stoughton-cycle",
+    repoUrl: "https://github.com/madisondesignprojects-ship-it/stoughton-cycle",
     vercelUrl: "https://vercel.com/mdp-solo/stoughton-cycle",
     route: false,
     defaultView: "morning",
@@ -682,6 +683,43 @@ const BIZ: Biz[] = [
     },
     hoursVerified: false,
     hoursSource: "Conflicting public hours: official Stoton Cycle website lists Tue–Fri 10 AM–6 PM and Sat 10 AM–4 PM; Downtown Stoughton lists Thursday until 7 PM. Confirm current hours directly.",
+  },
+
+  {
+    id: "honey-wagon",
+    name: "Honey Wagon Services",
+    town: "Stoughton",
+    owner: "Les Swanson (owner; per D&B/Green Union listings)",
+    oldUrl: "",
+    oldStatus: "Unknown",
+    oldNote: "No official website confirmed. Septic Pumping & Porta Potty Rental in Stoughton, WI | Honey Wagon Services demo is live on GitHub Pages.",
+    demoUrl: "https://madisondesignprojects-ship-it.github.io/Honey-Wagon-Services/",
+    updated: "2026-10-27",
+    updatedLabel: "Oct 27, 2026 · live on GitHub Pages",
+    stage: "Demo live",
+    repo: "Honey-Wagon-Services",
+    repoUrl: "https://github.com/madisondesignprojects-ship-it/Honey-Wagon-Services",
+    route: false,
+    defaultView: "morning",
+    walkOrder: 17,
+    slot: "",
+    window: "Mon–Fri 8 AM–4:30 PM at the office; call first to confirm Les is in",
+    address: "330 Industrial Circle",
+    hoursThu: "Mon–Fri 8 AM–4:30 PM",
+    flag: "Real office and yard (company-owned lot); weekdays during office hours are the visit window. Call first to confirm the owner is available.",
+    flagTone: "warning",
+    notes: "Honey Wagon Services Inc: septic pumping, holding tanks, line jetting and porta potty rental. Phone: (608) 873-6726. Owner: Les Swanson. Demo built for an iPad walk-in pitch; also on Vercel at honey-wagon-services.vercel.app. No prices, licenses or service-area towns are claimed on the demo until the owner confirms them.",
+    hours: {
+      mon: { open: "08:00", close: "16:30" },
+      tue: { open: "08:00", close: "16:30" },
+      wed: { open: "08:00", close: "16:30" },
+      thu: { open: "08:00", close: "16:30" },
+      fri: { open: "08:00", close: "16:30" },
+      sat: { closed: true },
+      sun: { closed: true },
+    },
+    hoursVerified: false,
+    hoursSource: "Google listing data via the demo's build notes (Mon–Fri 8 AM–4:30 PM). Confirm directly before visiting.",
   },
 ];
 
@@ -1495,6 +1533,16 @@ export default function App() {
             ) : (
               <div style={{ ...small, marginTop: 4, color: t.text.warning }}>No demo yet</div>
             )}
+            {b.demoUrl && b.repo && (
+              <a
+                href={b.repoUrl ?? `https://github.com/madisondesignprojects-ship-it/${b.repo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...linkBtn(false), marginTop: 6 }}
+              >
+                GitHub repo ↗
+              </a>
+            )}
           </div>
           <div>
             <div style={label}>
@@ -1536,7 +1584,7 @@ export default function App() {
           {b.vercelUrl && (
             <div>
               <div style={label}>Vercel project</div>
-              {a(b.vercelUrl, "stoughton-cycle ↗")}
+              {a(b.vercelUrl, `${b.repo || b.id} ↗`)}
             </div>
           )}
         </div>
