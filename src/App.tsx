@@ -737,6 +737,16 @@ interface Site {
 
 const SITES: Site[] = [
   {
+    name: "Wildwood Cafe",
+    town: "Stoughton",
+    demoUrl: "https://wildwood-cafe.vercel.app",
+    oldUrl: "https://www.wildwood-cafe.com/",
+    oldStatus: "Live",
+    deployed: "Oct 26, 9:25 PM",
+    repo: "Wildwood-Cafe",
+    notes: "Spec redesign built with Astro + Tailwind. Vercel deployment reports READY, but project SSO protection is enabled, so verify access before sharing the preview externally. The concept includes HTML menus; confirm menu items/prices, bakery case, events, photos, catering details, and any hours/phone conflicts with the owners before launch.",
+  },
+  {
     name: "Preferred Carpet Cleaning",
     town: "Cottage Grove",
     demoUrl: "https://carpetcleanersmadison.vercel.app",
