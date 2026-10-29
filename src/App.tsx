@@ -747,6 +747,17 @@ const SITES: Site[] = [
     notes: "Spec redesign built with Astro + Tailwind. Vercel deployment reports READY, but project SSO protection is enabled, so verify access before sharing the preview externally. The concept includes HTML menus; confirm menu items/prices, bakery case, events, photos, catering details, and any hours/phone conflicts with the owners before launch.",
   },
   {
+    name: "Honey Wagon Services",
+    town: "Stoughton",
+    demoUrl: "https://madisondesignprojects-ship-it.github.io/Honey-Wagon-Services/",
+    oldUrl: "",
+    oldStatus: "None",
+    noSite: true,
+    deployed: "Oct 27, 2026",
+    repo: "Honey-Wagon-Services",
+    notes: "Septic pumping, holding tanks, line jetting and porta potty rental concept. Demo also has a Vercel deployment at https://honey-wagon-services.vercel.app, but the GitHub Pages link is the primary shareable preview. Confirm owner/contact details, hours, service area, licenses and pricing before launch.",
+  },
+  {
     name: "Preferred Carpet Cleaning",
     town: "Cottage Grove",
     demoUrl: "https://carpetcleanersmadison.vercel.app",
